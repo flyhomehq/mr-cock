@@ -459,15 +459,22 @@ function speak(txt){
   if(!ttsOn) return;
   window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(txt);
-  u.lang='ko-KR'; u.rate=0.88; u.pitch=0.82; u.volume=1;
-  function go(){
+  u.lang='ko-KR'; u.rate=0.88; u.pitch=0.9; u.volume=1;
+  // 안드로이드 삼성 호환 — 음성 목록 로드 후 한국어 선택
+  function trySpeak(){
     const vs=window.speechSynthesis.getVoices();
-    const lv=vs.filter(v=>v.lang.startsWith('ko'));
-    const ch=lv[0]||null; if(ch) u.voice=ch;
+    if(vs.length===0){
+      setTimeout(trySpeak,300); return;
+    }
+    // ko-KR 우선, 없으면 ko, 없으면 기본
+    const koKR=vs.find(v=>v.lang==='ko-KR');
+    const ko=vs.find(v=>v.lang&&v.lang.startsWith('ko'));
+    if(koKR) u.voice=koKR;
+    else if(ko) u.voice=ko;
     window.speechSynthesis.speak(u);
   }
-  if(window.speechSynthesis.getVoices().length>0) go();
-  else window.speechSynthesis.onvoiceschanged=go;
+  // 안드로이드는 약간 딜레이 필요
+  setTimeout(trySpeak, 100);
 }
 
 // ═══════════════════════════════════
@@ -596,23 +603,41 @@ function renderDots(){
 }
 function renderCircle(ci){
   const svg=document.getElementById('overlay-svg');
-  svg.innerHTML='<defs><filter id="gf"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+  svg.innerHTML='<defs><filter id="gf"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
   if(!ci) return;
-  const x=ci.x,y=ci.y;
-  const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-  c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r','5');c.setAttribute('fill','none');
-  c.setAttribute('stroke','#FFD700');c.setAttribute('stroke-width','1.2');c.setAttribute('filter','url(#gf)');c.setAttribute('class','hl-c');svg.appendChild(c);
-  [['M'+(x-8)+','+y+'L'+(x-3)+','+y],['M'+(x+3)+','+y+'L'+(x+8)+','+y],
-   ['M'+x+','+(y-8)+'L'+x+','+(y-3)],['M'+x+','+(y+3)+'L'+x+','+(y+8)]].forEach(([d])=>{
+  const x=ci.x, y=ci.y;
+  // 외곽 큰 원 (배경용)
+  const outer=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  outer.setAttribute('cx',x);outer.setAttribute('cy',y);outer.setAttribute('r','7');
+  outer.setAttribute('fill','rgba(0,0,0,0.3)');outer.setAttribute('stroke','#FFD700');
+  outer.setAttribute('stroke-width','2.5');outer.setAttribute('class','hl-c');
+  svg.appendChild(outer);
+  // 내부 작은 원
+  const inner=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  inner.setAttribute('cx',x);inner.setAttribute('cy',y);inner.setAttribute('r','2.5');
+  inner.setAttribute('fill','#FFD700');svg.appendChild(inner);
+  // 십자선
+  [['M'+(x-12)+','+y+'L'+(x-8)+','+y],['M'+(x+8)+','+y+'L'+(x+12)+','+y],
+   ['M'+x+','+(y-12)+'L'+x+','+(y-8)],['M'+x+','+(y+8)+'L'+x+','+(y+12)]].forEach(([d])=>{
     const p=document.createElementNS('http://www.w3.org/2000/svg','path');
-    p.setAttribute('d',d);p.setAttribute('stroke','#FFD700');p.setAttribute('stroke-width','0.9');p.setAttribute('fill','none');svg.appendChild(p);
+    p.setAttribute('d',d);p.setAttribute('stroke','#FFD700');
+    p.setAttribute('stroke-width','2');p.setAttribute('fill','none');
+    p.setAttribute('stroke-linecap','round');
+    svg.appendChild(p);
   });
-  const rw=ci.l.length*3.4+12;
+  // 라벨 배경
+  const rw=ci.l.length*4+16;
   const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
-  bg.setAttribute('x',x+7);bg.setAttribute('y',y-5.5);bg.setAttribute('width',rw);bg.setAttribute('height',10);
-  bg.setAttribute('fill','rgba(180,120,0,0.92)');bg.setAttribute('rx','3');svg.appendChild(bg);
+  bg.setAttribute('x',x+9);bg.setAttribute('y',y-7);
+  bg.setAttribute('width',rw);bg.setAttribute('height',13);
+  bg.setAttribute('fill','rgba(20,10,0,0.88)');
+  bg.setAttribute('stroke','#FFD700');bg.setAttribute('stroke-width','0.8');
+  bg.setAttribute('rx','3');svg.appendChild(bg);
+  // 라벨 텍스트
   const tx=document.createElementNS('http://www.w3.org/2000/svg','text');
-  tx.setAttribute('x',x+11);tx.setAttribute('y',y+2.5);tx.setAttribute('fill','white');tx.setAttribute('font-size','4.5');tx.setAttribute('font-family','Arial,sans-serif');tx.setAttribute('font-weight','bold');
+  tx.setAttribute('x',x+13);tx.setAttribute('y',y+3);
+  tx.setAttribute('fill','#FFD700');tx.setAttribute('font-size','5.5');
+  tx.setAttribute('font-family','Arial,sans-serif');tx.setAttribute('font-weight','bold');
   tx.textContent=ci.l;svg.appendChild(tx);
 }
 function renderQA(){
