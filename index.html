@@ -365,6 +365,43 @@ const PHASE_KEYS = {
   student:  ['student_intro','student_intro','student_intro']
 };
 
+// 언어별 씬 — 영어/일어/중국어 간단 버전
+const SCENES_EN = {
+  beginner_intro: [
+    { t:'Welcome to the Cessna 172 cockpit. This tutorial covers instrument overview, engine startup, and takeoff preparation — the basics for first-time pilots.', c:'w', sim:true, ci:null },
+    { t:'These round instruments are the eyes of the aircraft. They show speed, altitude, attitude, and direction. For now, just focus on where each one is located.', c:'h', sim:true, ci:null, zoom:'25% 50%' },
+    { t:'The airspeed indicator is on the left. It shows how fast the aircraft moves through the air, measured in knots — similar to a car speedometer.', c:'h', sim:true, ci:{x:14.5,y:46.9,l:'Airspeed'}, zoom:'14% 47%' },
+    { t:'The altimeter is the third instrument. It shows how high we are above sea level. Remember: speed on the left, altitude in the middle.', c:'h', sim:true, ci:{x:29.5,y:46.5,l:'Altimeter'}, zoom:'29% 46%' },
+    { t:'The attitude indicator shows the blue sky and brown earth. It tells you if the aircraft is banking or pitching — essential for maintaining level flight.', c:'h', sim:true, ci:{x:22.0,y:46.9,l:'Attitude'}, zoom:'22% 47%' },
+    { t:'The heading indicator works like a compass. It shows which direction the aircraft is flying. These two instruments are checked most frequently in flight.', c:'h', sim:true, ci:{x:22.0,y:56.2,l:'Heading'}, zoom:'22% 56%' },
+    { t:'The throttle is the black lever in the center — similar to a car accelerator. Rudder pedals control direction on the ground, and flaps assist with takeoff and landing.', c:'h', sim:true, ci:{x:31.0,y:75.0,l:'Throttle'}, zoom:'31% 75%' },
+    { t:'That covers the instrument introduction. The Cessna 172 is one of the simplest aircraft to learn. Now let\'s move on to the startup procedure.', c:'w', sim:true, ci:null },
+  ],
+  beginner_startup: [
+    { t:'We will now go through the engine startup procedure. The flow is: power on, fuel supply, then start — similar to a car but with a few extra steps.', c:'w', sim:true, ci:null },
+    { t:'First is the parking brake. The lever on the left side locks the aircraft in place. Without it, the aircraft can roll forward during startup.', c:'h', sim:true, ci:{x:9.8,y:73.6,l:'① Parking Brake'} },
+    { t:'Next are the master switches — two red switches labeled ALT and BAT. Flipping them up powers the entire aircraft. The instruments will come to life.', c:'h', sim:true, ci:{x:38.5,y:80.3,l:'② Master Switch'} },
+    { t:'The fuel pump switch sends fuel from the tanks to the engine. When turned on, you will hear a low humming sound — that is normal.', c:'h', sim:true, ci:{x:35.0,y:74.3,l:'③ Fuel Pump'} },
+    { t:'The mixture control is the red knob. Pull it all the way out to Full Rich. This sets the optimal fuel-to-air ratio for ground level operations.', c:'h', sim:true, ci:{x:35.0,y:74.3,l:'Mixture'} },
+    { t:'Finally, turn the key to the START position and hold it until the engine catches. Once running, release the key — it will spring back automatically.', c:'h', sim:true, ci:{x:38.5,y:80.3,l:'④ Start'} },
+    { t:'After startup, set RPM to around 1000 and verify the oil pressure rises into the green range. That completes the startup procedure.', c:'w', sim:true, ci:{x:54.5,y:55.6,l:'RPM'} },
+  ],
+  beginner_taxi: [
+    { t:'With the engine running, it is time to taxi to the runway. Taxiing means moving the aircraft on the ground before flight.', c:'w', sim:true, ci:null },
+    { t:'During taxi, move slowly — about walking pace. Stay on the centerline and use the rudder pedals to steer. Avoid excessive throttle.', c:'h', sim:true, ci:null },
+    { t:'Before entering the runway, stop and perform a final check. Verify engine instruments, flap setting, and trim position using the checklist.', c:'h', sim:true, ci:{x:52.5,y:74.3,l:'Flaps'} },
+    { t:'After receiving takeoff clearance, align with the runway centerline. Advance the throttle gradually while maintaining direction with the rudder.', c:'h', sim:true, ci:{x:31.0,y:75.0,l:'Throttle'} },
+    { t:'When the airspeed reaches approximately 55 knots, apply gentle back pressure on the yoke to rotate. The aircraft will lift off smoothly.', c:'h', sim:true, ci:{x:14.5,y:46.9,l:'55 knots'} },
+    { t:'This completes Parts 1 through 3. Repeat each procedure until it becomes natural. Consistent practice is the key to building confidence.', c:'w', sim:true, ci:null },
+  ],
+};
+
+function getScenesForLang(){
+  if(lang==='en') return SCENES_EN;
+  return SCENES; // 한국어 기본
+}
+
+
 // ═══════════════════════════════════
 // 모드 선택
 // ═══════════════════════════════════
@@ -386,7 +423,8 @@ function showModeSelect(){
 
 function updateScenes(){
   const keys = PHASE_KEYS[mode]||PHASE_KEYS.beginner;
-  currentScenes = keys.map(k=>SCENES[k]||[]);
+  const scenesData = getScenesForLang();
+  currentScenes = keys.map(k=>scenesData[k]||SCENES[k]||[]);
 }
 
 // ═══════════════════════════════════
@@ -459,22 +497,20 @@ function speak(txt){
   if(!ttsOn) return;
   window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(txt);
-  u.lang='ko-KR'; u.rate=0.88; u.pitch=0.9; u.volume=1;
-  // 안드로이드 삼성 호환 — 음성 목록 로드 후 한국어 선택
+  const langMap={ko:'ko-KR',en:'en-US',ja:'ja-JP',zh:'zh-CN'};
+  u.lang=langMap[lang]||'ko-KR';
+  u.rate=0.88; u.pitch=0.9; u.volume=1;
   function trySpeak(){
     const vs=window.speechSynthesis.getVoices();
-    if(vs.length===0){
-      setTimeout(trySpeak,300); return;
-    }
-    // ko-KR 우선, 없으면 ko, 없으면 기본
-    const koKR=vs.find(v=>v.lang==='ko-KR');
-    const ko=vs.find(v=>v.lang&&v.lang.startsWith('ko'));
-    if(koKR) u.voice=koKR;
-    else if(ko) u.voice=ko;
+    if(vs.length===0){setTimeout(trySpeak,300);return;}
+    const targetLang=langMap[lang]||'ko-KR';
+    const exact=vs.find(v=>v.lang===targetLang);
+    const partial=vs.find(v=>v.lang&&v.lang.startsWith(targetLang.split('-')[0]));
+    if(exact) u.voice=exact;
+    else if(partial) u.voice=partial;
     window.speechSynthesis.speak(u);
   }
-  // 안드로이드는 약간 딜레이 필요
-  setTimeout(trySpeak, 100);
+  setTimeout(trySpeak,100);
 }
 
 // ═══════════════════════════════════
@@ -555,7 +591,8 @@ function startVoice(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR) return;
   if(recog){recog._dead=true;try{recog.abort();}catch(e){}recog=null;}
-  const r=new SR(); r.lang='ko-KR'; r.continuous=true; r.interimResults=false; r._dead=false;
+  const langMap={ko:'ko-KR',en:'en-US',ja:'ja-JP',zh:'zh-CN'};
+  const r=new SR(); r.lang=langMap[lang]||'ko-KR'; r.continuous=true; r.interimResults=false; r._dead=false;
   r.onresult=e=>{
     const said=e.results[e.results.length-1][0].transcript.toLowerCase();
     if(['이전','뒤로','다시'].some(w=>said.includes(w))) prevStep();
@@ -663,7 +700,26 @@ function pickLang(l){
   lang=l;
   ['ko','en','ja','zh'].forEach(code=>{const el=document.getElementById('lang-'+code);if(el)el.classList.toggle('picked',code===l);});
   document.getElementById('cur-lang').textContent={ko:'한국어',en:'English',ja:'日本語',zh:'中文'}[l];
-  renderQA(); toast('🌐 언어 변경됨');
+  // 음성 언어 업데이트
+  const langMap={ko:'ko-KR',en:'en-US',ja:'ja-JP',zh:'zh-CN'};
+  // 모드 선택 화면 텍스트 업데이트
+  const modeTitle=document.querySelector('.mode-title');
+  const modeSub=document.querySelector('.mode-sub');
+  if(l==='en'){
+    if(modeTitle) modeTitle.textContent='✈ CockpitOS';
+    if(modeSub) modeSub.textContent='Please select your learning mode.';
+  } else {
+    if(modeTitle) modeTitle.textContent='✈ CockpitOS';
+    if(modeSub) modeSub.textContent='학습 모드를 선택하십시오.';
+  }
+  // 씬 다시 로드
+  phase=0; step=0;
+  updateScenes();
+  updateTabs();
+  renderQA();
+  showStep();
+  startVoice();
+  toast('🌐 '+(l==='ko'?'한국어':l==='en'?'English':l==='ja'?'日本語':'中文'));
 }
 function pickTTS(on){
   document.getElementById('tts-on').classList.toggle('picked',on);
