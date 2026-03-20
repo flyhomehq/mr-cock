@@ -131,6 +131,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .mode-btn-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px}
 .mode-btn-desc{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.5}
 </style>
+<!-- MediaPipe 제스처 인식 (무료 오픈소스, 서버 비용 없음) -->
+<script type="module">
+import { GestureRecognizer, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs";
+window._mpLoaded = { GestureRecognizer, FilesetResolver };
+window.dispatchEvent(new Event('mpready'));
+</script>
 </head>
 <body>
 <div id="app">
@@ -828,48 +834,138 @@ const CameraEngine = {
    ──────────────────────────────────── */
 const GestureEngine = {
   _callbacks: {},
+  _recognizer: null,
+  _running: false,
+  _lastGesture: null,
+  _lastGestureTime: 0,
+  _COOLDOWN: 2000, // 같은 제스처 2초 내 중복 방지
 
+  // ── 초기화: MediaPipe 로드 후 실행 ──
   init(){
-    console.log('[GestureEngine] 준비됨 — v1.1에서 MediaPipe 활성화');
-    // v1.1: MediaPipe Hands 로드 및 초기화
-    // import { Hands } from '@mediapipe/hands'
-    // this._hands = new Hands(...)
+    window.addEventListener('mpready', ()=>this._setup());
+    // 이미 로드됐으면 바로 실행
+    if(window._mpLoaded) this._setup();
+    console.log('[GestureEngine] 초기화 대기 중...');
   },
 
-  // 손 들기 감지 콜백 등록
-  onHandRaised(callback){ this._callbacks.handRaised=callback; },
-  // 손가락 포인팅 감지
-  onFingerPoint(callback){ this._callbacks.fingerPoint=callback; },
-  // 고개 끄덕임
-  onNodDetected(callback){ this._callbacks.nod=callback; },
-  // 자리 비움
-  onPersonGone(callback){ this._callbacks.personGone=callback; },
-  // 자리 복귀
-  onPersonReturned(callback){ this._callbacks.personReturned=callback; },
-
-  // v1.1에서 실제 구현
-  _trigger(event, data){
-    if(this._callbacks[event]) this._callbacks[event](data);
+  async _setup(){
+    try{
+      const { GestureRecognizer, FilesetResolver } = window._mpLoaded;
+      const vision = await FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm'
+      );
+      this._recognizer = await GestureRecognizer.createFromOptions(vision, {
+        baseOptions:{
+          modelAssetPath:'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
+          delegate:'GPU'
+        },
+        numHands: 1,
+        runningMode: 'VIDEO',
+        minHandDetectionConfidence: 0.6,
+        minHandPresenceConfidence: 0.6,
+        minTrackingConfidence: 0.6,
+      });
+      console.log('[GestureEngine] ✅ MediaPipe 로드 완료');
+      AppController.toast('👋 제스처 인식 준비됨');
+      this._startLoop();
+    }catch(e){
+      console.warn('[GestureEngine] MediaPipe 로드 실패:', e.message);
+    }
   },
 
-  // ── 제스처별 동작 핸들러 (v1.1 구현 예정) ──
+  // ── 매 프레임 분석 루프 ──
+  _startLoop(){
+    if(this._running) return;
+    this._running = true;
+    const video = document.getElementById('pip-video');
+    const loop = ()=>{
+      if(!this._running || !this._recognizer) return;
+      if(video.readyState >= 2){
+        try{
+          const result = this._recognizer.recognizeForVideo(video, Date.now());
+          this._processResult(result);
+        }catch(e){}
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+    console.log('[GestureEngine] 루프 시작');
+  },
+
+  // ── 제스처 결과 처리 ──
+  _processResult(result){
+    if(!result.gestures || result.gestures.length === 0){
+      // 손이 없으면 마지막 제스처 초기화
+      if(this._lastGesture) this._lastGesture = null;
+      return;
+    }
+    const gesture = result.gestures[0][0];
+    const name = gesture.categoryName;   // Open_Palm, Pointing_Up 등
+    const score = gesture.score;
+    if(score < 0.75) return; // 신뢰도 75% 미만 무시
+
+    const now = Date.now();
+    // 쿨다운: 같은 제스처 2초 내 중복 방지
+    if(name === this._lastGesture && now - this._lastGestureTime < this._COOLDOWN) return;
+    this._lastGesture = name;
+    this._lastGestureTime = now;
+
+    console.log(`[GestureEngine] 감지: ${name} (${Math.round(score*100)}%)`);
+    this._dispatch(name, result);
+  },
+
+  // ── 제스처별 앱 동작 연결 ──
+  _dispatch(name, result){
+    switch(name){
+      case 'Open_Palm':
+        // 손 펼치기 → 질문 있어요
+        this.handleHandRaised();
+        break;
+      case 'Pointing_Up':
+        // 검지 들기 → 다음으로
+        this._showGesture('☝️ 다음으로');
+        setTimeout(()=>AppController.advance(), 500);
+        break;
+      case 'Closed_Fist':
+        // 주먹 → 일시정지
+        this._showGesture('✊ 일시정지');
+        setTimeout(()=>AppController.togglePause(), 500);
+        break;
+      case 'Thumb_Up':
+        // 엄지 올리기 → 이해했어요
+        this._showGesture('👍 확인!');
+        setTimeout(()=>AppController.advance(), 800);
+        break;
+      case 'Thumb_Down':
+        // 엄지 내리기 → 다시 설명
+        this._showGesture('👎 다시 설명');
+        setTimeout(()=>AppController.goBack(), 500);
+        break;
+      case 'Victory':
+        // V자 → 처음으로
+        this._showGesture('✌️ 처음으로');
+        break;
+    }
+  },
+
+  // 손들기 핸들러
   handleHandRaised(){
     this._showGesture('✋ 질문 있으시군요!');
-    // v1.1: VoiceEngine.play('질문이 있으시군요. 어떤 계기가 궁금하신가요?');
-    console.log('[GestureEngine] 손 들기 감지');
+    VoiceEngine.play(
+      AppController.STATE.lang==='ko'
+        ? '질문이 있으시군요. 어떤 계기가 궁금하신가요? 번호를 말씀해 주세요.'
+        : 'You have a question! Please say the instrument number.'
+    );
   },
-  handleBothHandsRaised(){
-    this._showGesture('✋✋ 일시정지');
-    AppController.togglePause();
-  },
-  handleFingerPoint(x, y){
-    // 가장 가까운 계기 찾기
+
+  handleBothHandsRaised(){ AppController.togglePause(); this._showGesture('✋✋ 일시정지'); },
+  handleFingerPoint(x,y){
     let closest=null, minDist=Infinity;
     cockpitData.instruments.forEach(inst=>{
       const d=Math.sqrt((inst.x-x)**2+(inst.y-y)**2);
       if(d<minDist){minDist=d;closest=inst;}
     });
-    if(closest && minDist<10) VisualEngine.focusInstrument(closest.id);
+    if(closest&&minDist<10) AppController.explainInstrument(closest.id);
   },
   handleNodding(){ AppController.advance(); },
   handleShaking(){ AppController.goBack(); },
@@ -878,15 +974,29 @@ const GestureEngine = {
     this._showGesture('👤 자리 비움 감지');
   },
 
-  // 제스처 화면 표시
+  // 콜백 등록 (외부 연결용)
+  onHandRaised(callback){ this._callbacks.handRaised=callback; },
+  onFingerPoint(callback){ this._callbacks.fingerPoint=callback; },
+  onNodDetected(callback){ this._callbacks.nod=callback; },
+  onPersonGone(callback){ this._callbacks.personGone=callback; },
+  onPersonReturned(callback){ this._callbacks.personReturned=callback; },
+
+  _trigger(event,data){ if(this._callbacks[event]) this._callbacks[event](data); },
+
+  // 화면에 제스처 표시
   _showGesture(msg){
     const el=document.getElementById('gesture-indicator');
     if(!el) return;
-    el.textContent=msg;
-    el.style.opacity='1';
+    el.textContent=msg; el.style.opacity='1';
     setTimeout(()=>{ el.style.opacity='0'; }, 2500);
   },
-};
+
+  // 제스처 인식 중지
+  stop(){
+    this._running=false;
+    console.log('[GestureEngine] 중지');
+  },
+}; // GestureEngine 끝
 
 /* ────────────────────────────────────
    VoiceRecognitionEngine — 음성인식 전담
