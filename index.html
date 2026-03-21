@@ -11,6 +11,9 @@
    [디자인] 기본 레이아웃
    ════════════════════════════════════ */
 :root{--point-color:#FFD700;--bg-dark:#050a14}
+/* 터치 딜레이 전역 제거 — 모든 버튼 즉각 반응 */
+*{-webkit-tap-highlight-color:transparent}
+button,[data-action],.marker,.mode-btn,.lang-select-btn,.sel-card{touch-action:manipulation;cursor:pointer}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Noto Sans KR',sans-serif}
 #app{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;position:relative;background:#000}
@@ -62,7 +65,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .phase-tab.active{background:rgba(245,166,35,0.25);border-color:rgba(245,166,35,0.7);color:#FFD060}
 
 /* ── PIP 카메라 (우측 하단, 자동 페이드) ── */
-#pip{position:fixed;bottom:10%;right:0;width:25vw;height:25vh;min-width:200px;min-height:150px;border-radius:12px 0 0 12px;border:2px solid rgba(255,220,100,0.5);border-right:none;background:#111;overflow:hidden;z-index:45;transition:opacity 1.2s}
+#pip{position:fixed;bottom:10%;right:0;width:50vw;height:37.5vh;min-width:300px;min-height:200px;border-radius:12px 0 0 12px;border:2px solid rgba(255,220,100,0.5);border-right:none;background:#111;overflow:hidden;z-index:45;transition:opacity 1.2s}
 #pip video{width:100%;height:100%;object-fit:cover}
 #pip-dot{position:absolute;top:5px;left:6px;width:6px;height:6px;border-radius:50%;background:#22C55E;animation:blink 1.5s infinite}
 /* 설명 오버레이 — AI 교관 설명 시 표시 */
@@ -490,7 +493,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
        → v1.1에서 콘텐츠 추가 예정
        → 현재는 "준비중" 표시
   ════ -->
-  <div id="lounge-overlay" class="panel">
+  <div id="lounge-panel" class="panel">
     <div style="width:90%;max-width:460px;margin:auto;background:rgba(10,15,28,0.97);border:1px solid rgba(245,166,35,0.5);border-radius:22px;padding:28px 24px;position:relative;color:#fff">
       <button data-action="close-lounge" style="position:absolute;top:14px;right:18px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:22px;cursor:pointer">✕</button>
       <h2 style="color:#F5A623;margin:0 0 6px;font-size:20px">👨‍✈️ Pilot Lounge</h2>
@@ -1008,8 +1011,15 @@ const CameraEngine = {
   async init(){
     // HTTPS/localhost 체크 — 시연 중 alert 팝업 방지
     if(!window.isSecureContext){
-      console.warn('[CameraEngine] HTTPS 아님 — 카메라 비활성화');
-      document.getElementById('pip').style.display='none';
+      console.warn('[CameraEngine] HTTPS 아님 — 카메라 없이 pip 표시');
+      // 카메라 없어도 pip 박스는 표시 (개발/테스트용)
+      const pip = document.getElementById('pip');
+      if(pip){
+        pip.style.display='block';
+        pip.style.opacity='1';
+        document.getElementById('pip-lbl').textContent='CAM (HTTPS필요)';
+        document.getElementById('pip-dot').style.background='#ef4444';
+      }
       return;
     }
     try{
@@ -2004,9 +2014,11 @@ const AppController = {
     document.getElementById('app').addEventListener('pointerdown', e=>{
       // ACTIVE 또는 PAUSED 상태에서만 작동
       if(this.appState !== 'ACTIVE' && this.appState !== 'PAUSED') return;
+      // 차단 목록: 이 요소 클릭은 멈춤/재개로 처리 안 함
       const blocked = '.panel,#mode-select,#lang-select,#topbar,#phase-tabs,' +
                       '#lang-banner,#ad-overlay,#choice-area,#pitch-overlay,' +
-                      '#btn-prev,#btn-next,#btn-pause,#pip,.marker,[data-action]';
+                      '#btn-prev,#btn-next,#btn-pause,#pip,.marker,[data-action],' +
+                      '#qr-popup';
       if(e.target.closest(blocked)) return;
       this.togglePause();
     });
@@ -2088,11 +2100,13 @@ const AppController = {
       // 탭/페이즈
       case 'set-phase':         this.setPhase(parseInt(dataset.phase)||0); break;
       // 언어
-      case 'set-lang':          this.pickLang(dataset.lang||'ko'); break;
+      case 'set-lang':
+        window.speechSynthesis.cancel(); VoiceEngine.stop();
+        this.pickLang(dataset.lang||'ko'); break;
       // 아코디언
       case 'toggle-acc':        this.toggleAcc(dataset.acc); break;
       // 음성 (toggleVoice 통합)
-      case 'voice-on':          this.toggleVoice(true);  break;
+      case 'voice-on':          window.speechSynthesis.cancel(); this.toggleVoice(true);  break;
       case 'voice-off':         this.toggleVoice(false); break;
       // 카메라
       case 'toggle-cam':        CameraEngine.toggleFixed(); break;
@@ -2173,7 +2187,8 @@ const AppController = {
     el.id='qr-popup';
     el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;background:rgba(10,15,28,0.97);border:1.5px solid rgba(245,166,35,0.5);border-radius:20px;padding:24px;text-align:center;color:#fff;font-family:Noto Sans KR,sans-serif';
     el.innerHTML=`<div style="font-size:14px;color:#F5A623;margin-bottom:12px">📲 QR코드로 접속</div>
-      <img src="${qrSrc}" style="width:180px;height:180px;border-radius:8px;background:#fff;padding:4px">
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:8px;word-break:break-all;padding:6px;background:rgba(255,255,255,0.05);border-radius:8px">${url}</div>
+      <img src="${qrSrc}" style="width:240px;height:240px;border-radius:8px;background:#fff;padding:6px">
       <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:10px">카메라로 스캔 → 앱 접속</div>
       <button onclick="document.getElementById('qr-popup').remove()" style="margin-top:12px;background:none;border:1px solid rgba(255,255,255,0.3);border-radius:12px;color:#fff;padding:6px 20px;cursor:pointer;font-family:inherit;touch-action:manipulation">닫기</button>`;
     document.body.appendChild(el);
