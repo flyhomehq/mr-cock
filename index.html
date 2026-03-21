@@ -162,6 +162,49 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 #pip.fullscreen{position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0;border:none;z-index:55;transition:all 0.4s cubic-bezier(0.25,0.1,0.25,1)}
 #pip-fullscreen-btn{position:fixed;top:56px;right:12px;z-index:60;background:rgba(20,30,50,0.85);border:1.5px solid rgba(255,220,100,0.5);border-radius:20px;color:#FFD060;font-size:12px;padding:5px 12px;cursor:pointer;touch-action:manipulation;display:none}
 #pip-fullscreen-btn.visible{display:block}
+/* 멈춤 전체화면 오버레이 */
+#pause-overlay{
+  position:fixed;inset:0;z-index:150;
+  background:rgba(0,0,0,0.75);
+  backdrop-filter:blur(4px);
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+}
+#pause-overlay.show{display:flex}
+#pause-main-text{
+  font-size:clamp(48px,10vw,96px);
+  font-weight:900;
+  color:#FFD700;
+  text-shadow:0 0 40px rgba(255,215,0,0.6);
+  letter-spacing:4px;
+  animation:pausePulse 1.5s ease-in-out infinite;
+}
+@keyframes pausePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.7;transform:scale(0.97)}}
+#pause-gesture-guide{
+  margin-top:28px;
+  display:flex;
+  gap:20px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.pgc{
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:16px;
+  padding:12px 20px;
+  text-align:center;
+  color:#fff;
+  font-size:clamp(12px,2.5vw,15px);
+}
+.pgc .em{font-size:clamp(24px,5vw,36px);display:block;margin-bottom:6px}
+#pause-resume-hint{
+  margin-top:24px;
+  font-size:clamp(13px,2.5vw,16px);
+  color:rgba(255,255,255,0.5);
+}
 /* 언어 선택 화면 */
 #lang-select{position:fixed;inset:0;z-index:96;background:rgba(4,8,18,0.98);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px}
 #lang-select.hidden{display:none}
@@ -237,6 +280,21 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
     </div>
   </div>
 
+  <!-- ════ 멈춤 전체화면 오버레이 ════ -->
+  <!-- 멈출 때 화면 가득 표시 — 심사위원에게 기능 시각화 -->
+  <div id="pause-overlay">
+    <div id="pause-main-text">⏸ PAUSED</div>
+    <div id="pause-gesture-guide">
+      <div class="pgc"><span class="em">✊</span>주먹→멈춤</div>
+      <div class="pgc"><span class="em">✋</span>손바닥→질문</div>
+      <div class="pgc"><span class="em">✌️</span>V자→계속</div>
+      <div class="pgc"><span class="em">☝️</span>검지→다음</div>
+      <div class="pgc"><span class="em">👍</span>엄지↑→이해</div>
+      <div class="pgc"><span class="em">👎</span>엄지↓→다시</div>
+    </div>
+    <div id="pause-resume-hint">화면 클릭 또는 ✌️ V자 → 계속</div>
+  </div>
+
   <!-- ════ 언어 선택 (최초 진입 화면) ════ -->
   <div id="lang-select">
     <div style="text-align:center;margin-bottom:32px">
@@ -244,6 +302,8 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <div style="font-size:22px;font-weight:700;color:#F5A623;margin-bottom:6px">CockpitOS</div>
       <div style="font-size:13px;color:rgba(255,255,255,0.5)">AI Flight Instructor · AI 비행 교관</div>
     </div>
+    <!-- 언어 선택이 첫 화면 — 뒤로 갈 곳 없음 -->
+    <!-- 나중에 앱이 확장되면 이 화면 앞에 온보딩 추가 가능 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:340px">
       <!-- 언어 선택 후 돌아오는 버튼 (모드선택 화면에서 표시) -->
       <div class="lang-select-btn" data-action="select-lang" data-lang="ko">
@@ -282,9 +342,9 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <div class="mode-btn-desc">항공 용어와 체크리스트 중심으로<br>실제 훈련에 가깝게 진행합니다.</div>
     </div>
     <!-- 언어 재선택 — 두 버튼 아래 -->
-    <div style="margin-top:16px;text-align:center">
+    <div style="margin-top:20px;text-align:center">
       <button data-action="back-to-lang"
-        style="background:none;border:1px solid rgba(255,255,255,0.25);border-radius:20px;color:rgba(255,255,255,0.6);font-size:13px;padding:10px 24px;cursor:pointer;touch-action:manipulation;min-height:44px">
+        style="background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.3);border-radius:24px;color:rgba(255,255,255,0.8);font-size:14px;padding:12px 32px;cursor:pointer;touch-action:manipulation;min-height:48px;display:inline-flex;align-items:center;gap:8px">
         ← 언어 변경 / Change Language
       </button>
     </div>
@@ -294,15 +354,17 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   <div id="progress-wrap"><div id="progress-bar"></div></div>
   <img id="character" alt="">
   <div id="topbar">
-    <!-- 좌측: 설정 + 모드변경 -->
+    <!-- 좌측: 설정 + 모드변경 + QR -->
     <div style="display:flex;gap:6px;align-items:center">
       <button class="top-btn" data-action="open-settings">⚙ 설정</button>
       <button class="top-btn" data-action="change-mode" style="border-color:rgba(255,215,0,0.4);color:#FFD060">← 모드</button>
       <button class="top-btn" data-action="show-qr" title="QR코드">📲 QR</button>
     </div>
+    <!-- 우측: 호스트 -->
+    <button class="top-btn host" data-action="open-host" style="position:absolute;right:12px;top:50%;transform:translateY(-50%)">🎓 호스트</button>
     
   <!-- 제스처 상태 표시 (GestureEngine v1.1) -->
-  <div id="gesture-indicator" style="position:fixed;top:108px;left:50%;transform:translateX(-50%);background:rgba(245,166,35,0.9);border-radius:20px;padding:6px 16px;font-size:13px;color:#1a0a00;font-weight:700;z-index:70;opacity:0;transition:opacity 0.3s;pointer-events:none"></div>
+  <div id="gesture-indicator" style="position:fixed;top:30%;left:50%;transform:translateX(-50%);background:rgba(245,166,35,0.92);border-radius:24px;padding:14px 32px;font-size:22px;color:#1a0a00;font-weight:800;letter-spacing:1px;z-index:70;opacity:0;transition:opacity 0.3s;pointer-events:none"></div>
 
   <div id="pip">
     <!-- 레이어 1: 카메라 (기본 모드) -->
@@ -1056,8 +1118,10 @@ const CameraEngine = {
   },
 
   startCycle(){
-    if(this._fixed) return;
-    this._show();
+    // pip 항상 표시 (고정 모드 기본)
+    this._fixed = true;
+    document.getElementById('pip').style.opacity='1';
+    document.getElementById('pip').style.display='block';
   },
 
   _show(){
@@ -1105,7 +1169,7 @@ const GestureEngine = {
   _running: false,
   _lastGesture: null,
   _lastGestureTime: 0,
-  _COOLDOWN: 2000, // 같은 제스처 2초 내 중복 방지
+  _COOLDOWN: 500, // 0.5초 — 오인식 방지와 빠른 반응의 균형
 
   // ── 초기화: MediaPipe 로드 후 실행 ──
   init(){
@@ -1228,8 +1292,14 @@ const GestureEngine = {
         setTimeout(()=>AppController.goBack(), 500);
         break;
       case 'Victory':
-        // V자 → 처음으로
-        this._showGesture('✌️ 처음으로');
+        // V자 → 계속 진행
+        this._showGesture('✌️ 계속!');
+        setTimeout(()=>AppController.advance(), 500);
+        break;
+      case 'ILoveYou':
+        // 손가락 3개(하트) → 처음으로
+        this._showGesture('🤟 처음부터');
+        setTimeout(()=>AppController.startMode(AppController.STATE.mode), 800);
         break;
     }
   },
@@ -1348,11 +1418,31 @@ const VoiceRecognitionEngine = {
       });
       return;
     }
-    // 번호 인식
-    const numMatch=said.match(/(\d+)번|number\s*(\d+)|(\d+)/);
+    // 번호 인식 — 숫자/한글 모두 지원
+    // "1번" "일번" "첫번째" "seven" 등
+    const KO_NUM={'일':1,'이':2,'삼':3,'사':4,'오':5,'육':6,'칠':7,'팔':8,'구':9,'십':10,'열하나':11,'열둘':12,'하나':1,'둘':2,'셋':3,'넷':4,'다섯':5,'여섯':6,'일곱':7,'여덟':8,'아홉':9};
+    const EN_NUM={'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':11,'twelve':12};
+    // 숫자+번 패턴
+    const numMatch=said.match(/(\d+)\s*번|number\s*(\d+)|(\d+)/);
     if(numMatch){
       const num=parseInt(numMatch[1]||numMatch[2]||numMatch[3]);
       if(num>=1&&num<=12){ AppController.explainInstrument(num); return; }
+    }
+    // 한글 숫자 패턴 (일번, 이번, 칠번 등)
+    for(const [word,num] of Object.entries(KO_NUM)){
+      if(said.includes(word+'번') || said.includes(word+' 번')){
+        AppController.explainInstrument(num); return;
+      }
+    }
+    // 자유 질문 패턴 — "1번이 뭐야" "7번 설명해줘" "what is 3"
+    const freeNumMatch = said.match(/(\d+)번|([일이삼사오육칠팔구십])(번)?/);
+    if(freeNumMatch && (said.includes('뭐') || said.includes('설명') || said.includes('알려') || said.includes('what') || said.includes('explain'))){
+      const n = freeNumMatch[1] ? parseInt(freeNumMatch[1]) : KO_NUM[freeNumMatch[2]];
+      if(n>=1&&n<=12){ AppController.explainInstrument(n); return; }
+    }
+    // 영어 숫자 패턴
+    for(const [word,num] of Object.entries(EN_NUM)){
+      if(said.includes(word)){ AppController.explainInstrument(num); return; }
     }
     // 명령어
     const CMDS={
@@ -1972,7 +2062,7 @@ const AppController = {
     phase: 0,
     step: 0,
     paused: false,
-    qaMode: false,
+    qaMode: true,  // 기본 ON — 음성 자유질문 항상 활성
     langBanner: false,
   },
   _scenes: [],
@@ -2345,19 +2435,22 @@ const AppController = {
     this._setState(this.STATE.paused?'PAUSED':'ACTIVE');
     const icon = document.getElementById('pause-icon');
     const btn  = document.getElementById('btn-pause');
+    const overlay = document.getElementById('pause-overlay');
     if(this.STATE.paused){
       if(icon) icon.textContent='▶';
-      if(btn)  btn.style.background='rgba(245,166,35,0.4)'; // 멈춤 시 황금색
+      if(btn)  btn.style.background='rgba(245,166,35,0.4)';
       VoiceEngine.pause();
       clearTimeout(this._autoTimer);
-      // 멈춤 안내 표시
-      this.toast('⏸ 멈춤 — 다시 클릭하면 계속됩니다');
-      IntelMonitor?.showExplanation('⏸ PAUSED — 다시 클릭하면 계속됩니다');
+      // 전체화면 멈춤 오버레이 표시
+      if(overlay) overlay.classList.add('show');
+      this.toast('⏸ 멈춤');
     } else {
       if(icon) icon.textContent='⏸';
-      if(btn)  btn.style.background='rgba(0,0,0,0.5)'; // 재생 시 기본색
+      if(btn)  btn.style.background='rgba(0,0,0,0.5)';
       VoiceEngine.resume();
       this._autoTimer=setTimeout(()=>this.advance(),10000);
+      // 오버레이 숨기기
+      if(overlay) overlay.classList.remove('show');
       this.toast('▶ 계속');
     }
   },
