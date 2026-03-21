@@ -165,8 +165,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 /* 멈춤 전체화면 오버레이 */
 #pause-overlay{
   position:fixed;inset:0;z-index:150;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter:blur(2px);
+  background:rgba(0,0,0,0);
+  backdrop-filter:none;
   display:none;
   flex-direction:column;
   align-items:center;
@@ -432,15 +432,25 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
     <div class="panel-scroll">
       <div class="phdr"><span class="ptitle">⚙ 설정</span><button class="pclose" data-action="close-settings">닫기</button></div>
       <!-- 공유/라운지 — 설정 패널 안으로 이동 -->
-      <div class="host-section" style="display:flex;gap:8px;padding:8px 0">
-        <button class="host-btn" data-action="share-app" style="flex:1">
+      <!-- SimConnect 상태 미니 표시 — 최상단 (중요 기능) -->
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;margin-bottom:8px">
+        <span id="sim-dot" style="width:10px;height:10px;border-radius:50%;background:#F5A623;flex-shrink:0;box-shadow:0 0 6px #F5A623"></span>
+        <span style="font-size:12px;color:rgba(255,255,255,0.7);font-weight:600">SimConnect</span>
+        <span id="sim-status-mini" style="font-size:11px;color:rgba(255,255,255,0.4);margin-left:auto">Mock 모드</span>
+      </div>
+      <div class="host-section" style="display:flex;gap:8px;padding:8px 0;flex-wrap:wrap">
+        <button class="host-btn" data-action="share-app" style="flex:1;min-width:80px">
           <span class="icon">🔗</span><span class="label">공유하기</span>
         </button>
-        <button class="host-btn" data-action="show-qr" style="flex:1">
+        <button class="host-btn" data-action="show-qr" style="flex:1;min-width:80px">
           <span class="icon">📲</span><span class="label">QR코드</span>
         </button>
-        <button class="host-btn" data-action="open-lounge" style="flex:1">
+        <button class="host-btn" data-action="open-lounge" style="flex:1;min-width:80px">
           <span class="icon">☕</span><span class="label">Lounge</span>
+        </button>
+        <!-- SimConnect 버튼 — 설정 최상단 배치 (중요) -->
+        <button class="host-btn" data-action="open-host" style="flex:1;min-width:80px;border-color:rgba(245,166,35,0.5);color:#FFD060">
+          <span class="icon">🔌</span><span class="label">SimConnect</span>
         </button>
       </div>
       <div class="acc-section open" id="acc-lang">
@@ -459,9 +469,14 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
           <div class="sel-card" id="tts-off" data-action="voice-off"><div class="sel-radio"><div class="sel-dot"></div></div><div class="sel-name">꺼짐</div></div>
         </div>
       </div>
-      <div style="margin-top:12px;padding:12px;background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.3);border-radius:12px;cursor:pointer" data-action="change-mode">
+      <div style="margin-top:12px;padding:12px;background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.3);border-radius:12px;cursor:pointer;touch-action:manipulation" data-action="change-mode">
         <div style="font-size:14px;font-weight:600;color:#F5A623;margin-bottom:2px">✈ 학습 모드 변경</div>
         <div style="font-size:12px;color:rgba(255,255,255,0.4)">초보자 / 훈련생 모드</div>
+      </div>
+      <!-- 호스트 모드 진입 버튼 — 학습모드 변경 다음 -->
+      <div style="margin-top:10px;padding:12px;background:rgba(100,60,0,0.15);border:1px solid rgba(245,166,35,0.2);border-radius:12px;cursor:pointer;touch-action:manipulation" data-action="open-host">
+        <div style="font-size:14px;font-weight:600;color:#F5A623;margin-bottom:2px">🎓 호스트 모드</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.4)">시연 / 광고 / AI 설정</div>
       </div>
     </div>
   </div>
@@ -1677,6 +1692,11 @@ const SimConnectBridge = {
   _updateStatus(msg){
     const el=document.getElementById('simconnect-status');
     if(el) el.textContent=msg;
+    // 설정 패널 미니 상태도 업데이트
+    const dot=document.getElementById('sim-dot');
+    const lbl=document.getElementById('sim-status-mini');
+    if(dot) dot.style.background = msg.includes('연결됨')?'#22C55E':msg.includes('Mock')?'#F5A623':'#6b7280';
+    if(lbl) lbl.textContent = msg.includes('연결됨')?'연결됨':msg.includes('Mock')?'Mock':'대기';
   },
 
   testConnection(){
@@ -2537,6 +2557,29 @@ const AppController = {
     if(isOpen){
       window.speechSynthesis.cancel();
       VoiceEngine.stop();
+      clearTimeout(this._autoTimer);
+      // 패널 열릴 때 일시정지 상태로
+      if(this.appState === 'ACTIVE'){
+        this.STATE.paused = true;
+        this._setState('PAUSED');
+        const icon = document.getElementById('pause-icon');
+        const btn  = document.getElementById('btn-pause');
+        if(icon) icon.textContent='▶';
+        if(btn)  btn.style.background='rgba(245,166,35,0.4)';
+      }
+    } else {
+      // 패널 닫힐 때 자동 재개
+      if(this.STATE.paused){
+        this.STATE.paused = false;
+        this._setState('ACTIVE');
+        const icon = document.getElementById('pause-icon');
+        const btn  = document.getElementById('btn-pause');
+        if(icon) icon.textContent='⏸';
+        if(btn)  btn.style.background='rgba(0,0,0,0.5)';
+        document.getElementById('pause-overlay')?.classList.remove('show');
+        VoiceEngine.resume();
+        this._autoTimer = setTimeout(()=>this.advance(), 1500);
+      }
     }
     document.getElementById(name+'-panel').classList.toggle('open', isOpen);
   },
