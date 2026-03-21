@@ -131,11 +131,28 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .mode-btn-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px}
 .mode-btn-desc{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.5}
 </style>
-<!-- MediaPipe 제스처 인식 (무료 오픈소스, 서버 비용 없음) -->
+<!-- MediaPipe 제스처 인식 — 로컬 우선, CDN 폴백 -->
 <script type="module">
-import { GestureRecognizer, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs";
-window._mpLoaded = { GestureRecognizer, FilesetResolver };
-window.dispatchEvent(new Event('mpready'));
+// 로컬 파일 우선 시도 → 실패 시 CDN 폴백 (시연장 안전장치)
+async function loadMediaPipe(){
+  const LOCAL = './mediapipe/vision_bundle.mjs';
+  const CDN   = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs';
+  try{
+    const m = await import(LOCAL);
+    window._mpLoaded = m;
+    window._mpWasmPath = './mediapipe/wasm';
+    window._mpModelPath = './mediapipe/gesture_recognizer.task';
+    console.log('[MediaPipe] 로컬 파일 로드 성공');
+  }catch(e){
+    console.log('[MediaPipe] 로컬 없음 → CDN 사용');
+    const m = await import(CDN);
+    window._mpLoaded = m;
+    window._mpWasmPath = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm';
+    window._mpModelPath = 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task';
+  }
+  window.dispatchEvent(new Event('mpready'));
+}
+loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
 </script>
 </head>
 <body>
@@ -852,11 +869,11 @@ const GestureEngine = {
     try{
       const { GestureRecognizer, FilesetResolver } = window._mpLoaded;
       const vision = await FilesetResolver.forVisionTasks(
-        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm'
+        window._mpWasmPath || 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm'
       );
       this._recognizer = await GestureRecognizer.createFromOptions(vision, {
         baseOptions:{
-          modelAssetPath:'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
+          modelAssetPath: window._mpModelPath || 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
           delegate:'GPU'
         },
         numHands: 1,
@@ -1092,29 +1109,59 @@ const AIEngine = {
 const SimConnectBridge = {
   _connected: false,
   _callbacks: {},
+  _mockTimer: null,
+  _mockData: { alt: 35000, spd: 450, hdg: 270, rpm: 1000 },
 
   init(){
-    console.log('[SimConnectBridge] 준비됨 — v1.1에서 SimConnect 활성화');
-    // v1.1 구현:
-    // this._ws = new WebSocket('ws://localhost:2048')
-    // this._ws.onmessage = (e) => this._handleMessage(JSON.parse(e.data))
+    console.log('[SimConnectBridge] 초기화 — Mock 모드로 시작');
+    this._startMock(); // 시연용 실시간 데이터 시작
+    this._updateStatus('🟡 Mock 모드');
   },
 
+  // ── 시연용 Mock 데이터 (실시간 변동) ──
+  // 실제 SimConnect 연결 전까지 계기판을 살아있게 유지
+  _startMock(){
+    clearInterval(this._mockTimer);
+    this._mockTimer = setInterval(()=>{
+      // 미세하게 변동하는 실시간 데이터
+      this._mockData.alt += (Math.random()-0.5)*20;
+      this._mockData.spd += (Math.random()-0.5)*2;
+      this._mockData.hdg = (this._mockData.hdg + (Math.random()-0.5)*0.5 + 360) % 360;
+      this._mockData.rpm += (Math.random()-0.5)*10;
+      // 범위 유지
+      this._mockData.alt  = Math.max(0, Math.min(45000, this._mockData.alt));
+      this._mockData.spd  = Math.max(60, Math.min(500, this._mockData.spd));
+      this._mockData.rpm  = Math.max(800, Math.min(2700, this._mockData.rpm));
+      // 콜백 호출 — 위치 기반 광고 트리거 (v1.1)
+      if(this._callbacks.onDataUpdate) this._callbacks.onDataUpdate(this._mockData);
+    }, 1000);
+    console.log('[SimConnectBridge] Mock 데이터 시작');
+  },
+
+  // 데이터 접근자
+  getAlt(){ return Math.round(this._mockData.alt); },
+  getSpd(){ return Math.round(this._mockData.spd); },
+  getHdg(){ return Math.round(this._mockData.hdg); },
+  getRpm(){ return Math.round(this._mockData.rpm); },
+
+  // ── v1.1 그릇: 실제 연결 ──
   isConnected(){ return this._connected; },
+  onButtonPressed(callback){ this._callbacks.onButtonPressed=callback; },
+  onAltitudeChanged(callback){ this._callbacks.onAltChanged=callback; },
+  onSpeedChanged(callback){ this._callbacks.onSpeedChanged=callback; },
+  onEngineStarted(callback){ this._callbacks.onEngineStarted=callback; },
+  onLocationChanged(callback){ this._callbacks.onLocationChanged=callback; },
+  onDataUpdate(callback){ this._callbacks.onDataUpdate=callback; },
 
-  // 버튼 조작 감지
-  onButtonPressed(callback){ this._callbacks.buttonPressed=callback; },
-  // 실시간 계기값 수신
-  onAltitudeChanged(callback){ this._callbacks.altChanged=callback; },
-  onSpeedChanged(callback){ this._callbacks.speedChanged=callback; },
-  onEngineStarted(callback){ this._callbacks.engineStarted=callback; },
-  // 위치 정보 (광고 트리거용)
-  onLocationChanged(callback){ this._callbacks.locationChanged=callback; },
-
-  _trigger(event, data){
-    if(this._callbacks[event]) this._callbacks[event](data);
+  _updateStatus(msg){
+    const el=document.getElementById('simconnect-status');
+    if(el) el.textContent=msg;
   },
-};
+
+  testConnection(){
+    AppController.toast('SimConnect v1.1에서 활성화됩니다');
+  },
+}; // SimConnectBridge 끝
 
 /* ────────────────────────────────────
    AdEngine — 광고 전담
