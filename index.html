@@ -51,7 +51,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 #character.show{opacity:1}
 #character.right{left:68%}
 #character.center{left:50%}
-#progress-wrap{position:fixed;top:0;left:0;right:0;height:8px;z-index:100;background:rgba(255,255,255,0.15)}
+#progress-wrap{position:fixed;bottom:80px;left:0;right:0;height:8px;z-index:100;background:rgba(255,255,255,0.15)}
 #progress-bar{height:100%;background:#F5A623;width:0%;transition:width 0.5s}
 #topbar{position:fixed;top:6px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 12px;z-index:90;height:44px}
 .top-btn{background:rgba(20,30,50,0.85);backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,0.3);border-radius:20px;color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;padding:6px 14px;cursor:pointer;touch-action:manipulation;user-select:none}
@@ -62,7 +62,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .phase-tab.active{background:rgba(245,166,35,0.25);border-color:rgba(245,166,35,0.7);color:#FFD060}
 
 /* ── PIP 카메라 (우측 하단, 자동 페이드) ── */
-#pip{position:fixed;bottom:20%;right:0;width:25vw;height:18vw;max-width:280px;max-height:200px;border-radius:12px 0 0 12px;border:2px solid rgba(255,220,100,0.5);border-right:none;background:#111;overflow:hidden;z-index:45;transition:opacity 1.2s}
+#pip{position:fixed;bottom:10%;right:0;width:25vw;height:25vh;min-width:200px;min-height:150px;border-radius:12px 0 0 12px;border:2px solid rgba(255,220,100,0.5);border-right:none;background:#111;overflow:hidden;z-index:45;transition:opacity 1.2s}
 #pip video{width:100%;height:100%;object-fit:cover}
 #pip-dot{position:absolute;top:5px;left:6px;width:6px;height:6px;border-radius:50%;background:#22C55E;animation:blink 1.5s infinite}
 /* 설명 오버레이 — AI 교관 설명 시 표시 */
@@ -84,7 +84,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 #btn-next{right:6px}
 #btn-prev:active,#btn-next:active{background:rgba(255,255,255,0.15)}
 .arrow-icon{font-size:32px;color:rgba(255,255,255,0.9)}
-#btn-pause{position:fixed;bottom:132px;left:50%;transform:translateX(-50%);z-index:52;width:46px;height:46px;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;user-select:none}
+#btn-pause{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:101;width:52px;height:52px;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;user-select:none}
 #step-bar{position:fixed;bottom:130px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:48;pointer-events:none}
 .sd{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.25);transition:all 0.3s}
 .sd.active{width:20px;border-radius:3px;background:#F5A623}
@@ -226,16 +226,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <button class="pitch-btn primary" data-action="pitch-next">다음 ▶</button>
       <button class="pitch-btn" data-action="pitch-close">시연 시작 →</button>
     </div>
-    <!-- 단축키 안내 — 시연 중 항상 보임 -->
-    <div style="margin-top:14px;font-size:11px;color:rgba(255,255,255,0.3);text-align:center;line-height:2">
-      <span style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:5px;padding:2px 8px;font-family:monospace">F</span>
-      피치 시작 &nbsp;|&nbsp;
-      <span style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:5px;padding:2px 8px;font-family:monospace">ESC</span>
-      종료 &nbsp;|&nbsp;
-      <span style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:5px;padding:2px 8px;font-family:monospace">←→</span>
-      슬라이드 이동
-    </div>
-    <!-- 단축키 안내 (시연자용) -->
+        <!-- 단축키 안내 (시연자용) -->
     <div style="margin-top:14px;font-size:11px;color:rgba(255,255,255,0.3);text-align:center;line-height:1.8">
       ⌨️ <b style="color:rgba(255,255,255,0.5)">F</b> 피치 시작 &nbsp;|&nbsp;
       <b style="color:rgba(255,255,255,0.5)">ESC</b> 피치 종료 &nbsp;|&nbsp;
@@ -276,19 +267,23 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   </div>
 
   <div id="mode-select" class="hidden">
+    <!-- 언어 재선택 버튼 — 모드버튼 아래 -->
     <div class="mode-title">✈ CockpitOS</div>
     <div class="mode-sub">학습 모드를 선택하십시오.</div>
     <div class="mode-btn gold" data-action="start-beginner">
       <div class="mode-btn-title">🟡 초보자 모드</div>
       <div class="mode-btn-desc">비행 지식이 없어도 괜찮습니다.<br>계기 소개부터 차근차근 시작합니다.</div>
     </div>
-    <!-- 언어 재선택 버튼 -->
-    <div style="text-align:center;margin-bottom:12px">
-      <button data-action="back-to-lang" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;padding:4px 12px;touch-action:manipulation">← 언어 변경 / Change Language</button>
-    </div>
     <div class="mode-btn" data-action="start-student">
       <div class="mode-btn-title">🔵 훈련생 모드</div>
       <div class="mode-btn-desc">항공 용어와 체크리스트 중심으로<br>실제 훈련에 가깝게 진행합니다.</div>
+    </div>
+    <!-- 언어 재선택 — 두 버튼 아래 -->
+    <div style="margin-top:16px;text-align:center">
+      <button data-action="back-to-lang"
+        style="background:none;border:1px solid rgba(255,255,255,0.25);border-radius:20px;color:rgba(255,255,255,0.6);font-size:13px;padding:10px 24px;cursor:pointer;touch-action:manipulation;min-height:44px">
+        ← 언어 변경 / Change Language
+      </button>
     </div>
   </div>
 
@@ -296,23 +291,31 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   <div id="progress-wrap"><div id="progress-bar"></div></div>
   <img id="character" alt="">
   <div id="topbar">
-    <button class="top-btn" data-action="open-settings">설정</button>
-    <div style="display:flex;gap:6px">
-      <button class="top-btn" data-action="share-app" title="공유하기">🔗 Share</button>
-      <button class="top-btn lounge" data-action="open-lounge" title="조종사 라운지">☕ Lounge</button>
+    <!-- 좌측: 설정 + 모드변경 -->
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="top-btn" data-action="open-settings">⚙ 설정</button>
+      <button class="top-btn" data-action="change-mode" style="border-color:rgba(255,215,0,0.4);color:#FFD060">← 모드</button>
+      <button class="top-btn" data-action="show-qr" title="QR코드">📲 QR</button>
     </div>
-    <button class="top-btn host" data-action="open-host">호스트 모드</button>
-  </div>
-  <div id="phase-tabs">
-    <button class="phase-tab active" data-action="set-phase" data-phase="0">📖 조종석</button>
-    <button class="phase-tab" data-action="set-phase" data-phase="1">🔋 시동</button>
-    <button class="phase-tab" data-action="set-phase" data-phase="2">✈️ 이륙준비</button>
-  </div>
+    
   <!-- 제스처 상태 표시 (GestureEngine v1.1) -->
   <div id="gesture-indicator" style="position:fixed;top:108px;left:50%;transform:translateX(-50%);background:rgba(245,166,35,0.9);border-radius:20px;padding:6px 16px;font-size:13px;color:#1a0a00;font-weight:700;z-index:70;opacity:0;transition:opacity 0.3s;pointer-events:none"></div>
 
   <div id="pip">
+    <!-- 레이어 1: 카메라 (기본 모드) -->
     <video id="pip-video" autoplay muted playsinline></video>
+    <!-- 레이어 2: 유튜브/외부영상 (설명 모드) -->
+    <!-- 사용법: PipEngine.showYoutube('유튜브ID') -->
+    <iframe id="pip-youtube" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;display:none" allowfullscreen allow="autoplay"></iframe>
+    <!-- 레이어 3: 계기 데이터 표시 (SimConnect 연결 시) -->
+    <!-- SimConnect 데이터가 오면 자동으로 이 레이어에 표시 -->
+    <div id="pip-data" style="position:absolute;top:0;left:0;width:100%;height:100%;display:none;background:rgba(0,8,20,0.92);color:#00ffcc;font-family:JetBrains Mono,monospace;padding:8px;font-size:11px;line-height:1.8">
+      <div style="color:#F5A623;font-size:10px;margin-bottom:4px">📡 SIMCONNECT LIVE</div>
+      <div>고도 <span id="pip-alt" style="color:#fff">--</span> ft</div>
+      <div>속도 <span id="pip-spd" style="color:#fff">--</span> kt</div>
+      <div>방향 <span id="pip-hdg" style="color:#fff">--</span> °</div>
+      <div>RPM <span id="pip-rpm" style="color:#fff">--</span></div>
+    </div>
     <div id="pip-dot"></div>
     <div id="pip-lbl">CAM</div>
     <!-- 스캔라인 — Vision AI 시연 시 활성화 -->
@@ -329,7 +332,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
     <div id="pip-toggle" data-action="toggle-cam">고정</div>
   </div>
   <!-- 카메라 전체화면 전환 버튼 -->
-  <div id="pip-fullscreen-btn" data-action="toggle-pip-fullscreen">⛶ 전체화면</div>
+  <div id="pip-fullscreen-btn" data-action="toggle-pip-fullscreen" style="display:block">⛶ 전체화면</div>
 
   <div id="btn-prev"><span class="arrow-icon">‹</span></div>
   <div id="btn-next"><span class="arrow-icon">›</span></div>
@@ -363,6 +366,18 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   <div id="settings-panel" class="panel">
     <div class="panel-scroll">
       <div class="phdr"><span class="ptitle">⚙ 설정</span><button class="pclose" data-action="close-settings">닫기</button></div>
+      <!-- 공유/라운지 — 설정 패널 안으로 이동 -->
+      <div class="host-section" style="display:flex;gap:8px;padding:8px 0">
+        <button class="host-btn" data-action="share-app" style="flex:1">
+          <span class="icon">🔗</span><span class="label">공유하기</span>
+        </button>
+        <button class="host-btn" data-action="show-qr" style="flex:1">
+          <span class="icon">📲</span><span class="label">QR코드</span>
+        </button>
+        <button class="host-btn" data-action="open-lounge" style="flex:1">
+          <span class="icon">☕</span><span class="label">Lounge</span>
+        </button>
+      </div>
       <div class="acc-section open" id="acc-lang">
         <div class="acc-header" data-action="toggle-acc" data-acc="acc-lang"><span class="acc-title">🌐 언어</span><span style="display:flex;align-items:center;gap:6px"><span class="acc-current" id="cur-lang">한국어</span><span class="acc-arrow">▾</span></span></div>
         <div class="acc-body">
@@ -466,6 +481,15 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   </div>
 
   <!-- ════ 라운지 오버레이 ════ -->
+  <!-- ════ 라운지 패널 ════
+       용도: 비행 대기 중 사용자 체류 시간 증대
+       예정 콘텐츠:
+         - Flight Quiz: 항공 상식 퀴즈
+         - Cargo Game: 화물 적재 게임
+         - 비행 팁/날씨 정보
+       → v1.1에서 콘텐츠 추가 예정
+       → 현재는 "준비중" 표시
+  ════ -->
   <div id="lounge-overlay" class="panel">
     <div style="width:90%;max-width:460px;margin:auto;background:rgba(10,15,28,0.97);border:1px solid rgba(245,166,35,0.5);border-radius:22px;padding:28px 24px;position:relative;color:#fff">
       <button data-action="close-lounge" style="position:absolute;top:14px;right:18px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:22px;cursor:pointer">✕</button>
@@ -663,6 +687,23 @@ const cockpitData = {
 /* ════════════════════════════════════
    [데이터] 장면 시나리오
    ════════════════════════════════════ */
+// ══════════════════════════════════════════════
+// SCENES 시나리오에 pip 필드 추가 방법:
+// pip 필드로 해당 단계에서 pip 화면을 제어합니다.
+//
+// 예시:
+// {t:'속도계 설명', pip:{mode:'youtube', id:'유튜브ID', sec:60}}
+//   → pip에 유튜브 60초 재생 후 카메라 복귀
+//
+// {t:'고도 설명', pip:{mode:'simdata'}}
+//   → pip에 SimConnect 실시간 계기 데이터 표시
+//
+// {t:'일반 설명', pip:{mode:'camera'}}
+//   → pip에 카메라 (기본값, 생략 가능)
+//
+// 심커넥터 연결 후 각 설명 단계에 pip 필드만 추가하면
+// 자동으로 해당 영상/데이터가 pip에 표시됩니다.
+// ══════════════════════════════════════════════
 const SCENES = {
   ko: {
     intro: [
@@ -1428,11 +1469,13 @@ const SimConnectBridge = {
       ws.onmessage = (e)=>{
         try{
           const data = JSON.parse(e.data);
-          // 실시간 계기값 수신
+          // 실시간 계기값 수신 → PipEngine 자동 업데이트
           if(data.altitude !== undefined){
             this._mockData.alt = data.altitude;
             if(this._callbacks.onAltChanged) this._callbacks.onAltChanged(data.altitude);
           }
+          // 모든 데이터 수신 시 PipEngine에 전달
+          PipEngine.updateSimData(this._mockData);
           if(data.airspeed !== undefined){
             this._mockData.spd = data.airspeed;
             if(this._callbacks.onSpeedChanged) this._callbacks.onSpeedChanged(data.airspeed);
@@ -1488,6 +1531,8 @@ const SimConnectBridge = {
       this._mockData.alt  = Math.max(0, Math.min(45000, this._mockData.alt));
       this._mockData.spd  = Math.max(60, Math.min(500, this._mockData.spd));
       this._mockData.rpm  = Math.max(800, Math.min(2700, this._mockData.rpm));
+      // PipEngine 자동 업데이트 (Mock & 실제 공통)
+      PipEngine?.updateSimData(this._mockData);
       // 콜백 호출 — 위치 기반 광고 트리거 (v1.1)
       if(this._callbacks.onDataUpdate) this._callbacks.onDataUpdate(this._mockData);
     }, 1000);
@@ -1518,6 +1563,117 @@ const SimConnectBridge = {
     AppController.toast('SimConnect v1.1에서 활성화됩니다');
   },
 }; // SimConnectBridge 끝
+
+/* ════════════════════════════════════
+   PipEngine — pip 화면 전담 제어
+   ──────────────────────────────────
+   핵심 설계 원칙:
+   - 심커넥터 API 연결만 되면 즉시 작동
+   - 설명 단계별 자동 pip 모드 전환
+   - 설명 끝나면 카메라 모드로 자동 복귀
+
+   모드 종류:
+   MODE_CAMERA  : 기본 (카메라 촬영)
+   MODE_YOUTUBE : 유튜브/영상 재생
+   MODE_SIMDATA : SimConnect 계기 데이터
+   MODE_OVERLAY : 텍스트 오버레이
+   ════════════════════════════════════ */
+const PipEngine = {
+  _mode: 'CAMERA', // 현재 모드
+  _prevMode: 'CAMERA', // 이전 모드 (복귀용)
+
+  // ── 모드 전환 핵심 함수 ──
+  setMode(mode){
+    this._prevMode = this._mode;
+    this._mode = mode;
+    // 모든 레이어 숨기기
+    document.getElementById('pip-youtube').style.display = 'none';
+    document.getElementById('pip-data').style.display = 'none';
+    document.getElementById('pip-video').style.opacity = '1';
+    document.getElementById('pip-lbl').textContent = 'CAM';
+    // 해당 모드 레이어 표시
+    switch(mode){
+      case 'CAMERA':
+        document.getElementById('pip-lbl').textContent = 'CAM';
+        break;
+      case 'YOUTUBE':
+        document.getElementById('pip-video').style.opacity = '0.1';
+        document.getElementById('pip-youtube').style.display = 'block';
+        document.getElementById('pip-lbl').textContent = '▶ VIDEO';
+        break;
+      case 'SIMDATA':
+        document.getElementById('pip-video').style.opacity = '0.1';
+        document.getElementById('pip-data').style.display = 'block';
+        document.getElementById('pip-lbl').textContent = '📡 SIM';
+        break;
+    }
+    console.log(`[PipEngine] 모드 전환: ${this._prevMode} → ${mode}`);
+  },
+
+  // 이전 모드로 복귀
+  restoreMode(){
+    this.setMode(this._prevMode);
+  },
+
+  // ── 유튜브 재생 ──
+  // 사용: PipEngine.showYoutube('dQw4w9WgXcQ')
+  // 설명 끝나면 restoreMode() 자동 호출
+  showYoutube(videoId, autoRestoreSeconds=0){
+    const iframe = document.getElementById('pip-youtube');
+    // 자동재생+음소거로 시작 (브라우저 정책)
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&rel=0`;
+    this.setMode('YOUTUBE');
+    // 자동 복귀 설정 (초 단위)
+    if(autoRestoreSeconds > 0){
+      setTimeout(()=>{
+        iframe.src = '';
+        this.restoreMode();
+        console.log('[PipEngine] 영상 종료 → 카메라 복귀');
+      }, autoRestoreSeconds * 1000);
+    }
+  },
+
+  // 유튜브 종료
+  stopYoutube(){
+    document.getElementById('pip-youtube').src = '';
+    this.restoreMode();
+  },
+
+  // ── SimConnect 계기 데이터 표시 ──
+  // SimConnectBridge.onDataUpdate 콜백에서 자동 호출됨
+  updateSimData(data){
+    const fmt = (v, d=0) => v !== undefined ? Number(v).toFixed(d) : '--';
+    const el = id => document.getElementById(id);
+    if(el('pip-alt')) el('pip-alt').textContent = fmt(data.alt);
+    if(el('pip-spd')) el('pip-spd').textContent = fmt(data.spd, 1);
+    if(el('pip-hdg')) el('pip-hdg').textContent = fmt(data.hdg);
+    if(el('pip-rpm')) el('pip-rpm').textContent = fmt(data.rpm);
+    // SimConnect 연결되면 자동으로 SIMDATA 모드
+    if(this._mode === 'CAMERA' && SimConnectBridge.isConnected()){
+      this.setMode('SIMDATA');
+    }
+  },
+
+  // ── 설명 단계별 pip 자동 전환 ──
+  // _renderStep(s) 에서 s.pip 데이터로 호출됨
+  // 예: s.pip = {mode:'youtube', id:'abc123', sec:30}
+  //     s.pip = {mode:'simdata'}
+  //     s.pip = {mode:'camera'}
+  handleStepPip(pip){
+    if(!pip){ this.setMode('CAMERA'); return; }
+    switch(pip.mode){
+      case 'youtube':
+        this.showYoutube(pip.id, pip.sec||0);
+        break;
+      case 'simdata':
+        this.setMode('SIMDATA');
+        break;
+      case 'camera':
+      default:
+        this.setMode('CAMERA');
+    }
+  },
+};
 
 /* ════════════════════════════════════
    [엔진 P] PitchEngine
@@ -1844,30 +2000,43 @@ const AppController = {
     });
 
     // 화면 전체 클릭 → 일시정지/재개 토글
-    // (버튼/패널/마커 클릭은 제외)
+    // ACTIVE 상태일 때만 작동 (모드선택/언어선택 화면 제외)
     document.getElementById('app').addEventListener('pointerdown', e=>{
+      // ACTIVE 또는 PAUSED 상태에서만 작동
+      if(this.appState !== 'ACTIVE' && this.appState !== 'PAUSED') return;
       const blocked = '.panel,#mode-select,#lang-select,#topbar,#phase-tabs,' +
-                      '#lang-banner,#ad-overlay,#choice-area,' +
+                      '#lang-banner,#ad-overlay,#choice-area,#pitch-overlay,' +
                       '#btn-prev,#btn-next,#btn-pause,#pip,.marker,[data-action]';
       if(e.target.closest(blocked)) return;
       this.togglePause();
     });
 
+    // 스와이프 제스처 — 좌우 스와이프로 이전/다음 (태블릿/휴대폰)
+    let _touchStartX = 0;
+    document.addEventListener('touchstart', e=>{
+      _touchStartX = e.touches[0].clientX;
+    }, {passive:true});
+    document.addEventListener('touchend', e=>{
+      if(this.appState !== 'ACTIVE' && this.appState !== 'PAUSED') return;
+      const diff = e.changedTouches[0].clientX - _touchStartX;
+      if(Math.abs(diff) < 60) return; // 60px 이상만 인식
+      if(diff < 0) this.advance();    // 왼쪽 → 다음
+      else         this.goBack();     // 오른쪽 → 이전
+    }, {passive:true});
+
     // 화면 리사이즈 대응
     window.addEventListener('resize', ()=>VisualEngine.updateRatio());
-
-    // 탭 이벤트
-    document.getElementById('app').addEventListener('click',e=>{
-      if(e.target.closest('.panel,#mode-select,#topbar,#phase-tabs,#lang-banner,#ad-overlay,#choice-area,#btn-prev,#btn-next,#btn-pause,#pip,.marker'))return;
-      this.advance();
-    });
 
     // 버튼
     // 터치 최적화: pointerdown 사용 (touchstart보다 호환성 좋음)
     ['btn-prev','btn-next','btn-pause'].forEach(id=>{
       const el=document.getElementById(id);
       const fn=id==='btn-prev'?()=>this.goBack():id==='btn-next'?()=>this.advance():()=>this.togglePause();
-      el.addEventListener('pointerdown',e=>{e.stopPropagation();fn();});
+      el.addEventListener('pointerdown',e=>{
+        e.preventDefault(); // 기본 동작 방지
+        e.stopPropagation();
+        fn();
+      });
     });
 
     // GestureEngine 콜백 연결 (v1.1 활성화)
@@ -1908,8 +2077,9 @@ const AppController = {
         document.getElementById('mode-select').classList.remove('hidden');
         this._updateModeSelect(dataset.lang||'ko');
         break;
+      case 'start-beginner':    this.startMode('beginner'); break;
       case 'start-student':     this.startMode('student');  break;
-      case 'change-mode':       this.togglePanel('settings',false); this.showModeSelect(); break;
+      case 'change-mode':       this.togglePanel('settings',false); this.togglePanel('host',false); this.showModeSelect(); break;
       // 패널 (togglePanel 통합)
       case 'open-settings':     this.togglePanel('settings', true);  break;
       case 'close-settings':    this.togglePanel('settings', false); break;
@@ -1937,12 +2107,13 @@ const AppController = {
       // 호스트
       case 'toggle-qa':         this.toggleQAMode();       break;
       // 라운지
-      case 'open-lounge':       this.togglePanel('lounge', true);  break;
+      case 'open-lounge':       this.togglePanel('lounge', true);  break;  // 라운지: 비행 대기 중 콘텐츠 (퀴즈/화물게임 등) — v1.1 콘텐츠 추가 예정
       case 'close-lounge':      this.togglePanel('lounge', false); break;
       case 'lounge-quiz':       this.toast('✈️ Flight Quiz — 곧 오픈합니다!'); break;
       case 'lounge-cargo':      this.toast('📦 Cargo Game — 곧 오픈합니다!'); break;
       // 공유
-      case 'share-app':         this.shareApp();      // 광고 데모 (심사 시연용)
+      case 'share-app':         this.shareApp(); break;
+      case 'show-qr':           this.showQR(); break;      // 광고 데모 (심사 시연용)
       case 'set-wakeword':
         this.setWakeWord(dataset.word||'');
         const wsEl=document.getElementById('wakeword-status');
@@ -1990,6 +2161,22 @@ const AppController = {
       this.toast('🔗 '+window.location.href.slice(0,40)+'...');
       console.warn('[AppController] 공유 실패:', err);
     }
+  },
+
+  // QR코드 팝업 — 현재 URL을 QR로 생성 (공유용)
+  // 배치 위치: 설정 패널 → 공유하기 옆
+  showQR(){
+    const url=window.location.href;
+    const qrSrc=`https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(url)}&choe=UTF-8`;
+    document.getElementById('qr-popup')?.remove();
+    const el=document.createElement('div');
+    el.id='qr-popup';
+    el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;background:rgba(10,15,28,0.97);border:1.5px solid rgba(245,166,35,0.5);border-radius:20px;padding:24px;text-align:center;color:#fff;font-family:Noto Sans KR,sans-serif';
+    el.innerHTML=`<div style="font-size:14px;color:#F5A623;margin-bottom:12px">📲 QR코드로 접속</div>
+      <img src="${qrSrc}" style="width:180px;height:180px;border-radius:8px;background:#fff;padding:4px">
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:10px">카메라로 스캔 → 앱 접속</div>
+      <button onclick="document.getElementById('qr-popup').remove()" style="margin-top:12px;background:none;border:1px solid rgba(255,255,255,0.3);border-radius:12px;color:#fff;padding:6px 20px;cursor:pointer;font-family:inherit;touch-action:manipulation">닫기</button>`;
+    document.body.appendChild(el);
   },
 
   // Wake-word 설정 (호스트가 바꿀 수 있음)
@@ -2046,7 +2233,17 @@ const AppController = {
   },
 
   showModeSelect(){
+    // 음성 완전 중단
+    window.speechSynthesis.cancel();
+    VoiceEngine.stop();
+    clearTimeout(this._autoTimer);
+    // 상태를 MODE_SELECT로 전환 (ACTIVE 아님 → 화면클릭 비활성)
+    this.appState = 'MODE_SELECT';
+    this.STATE.phase=0; this.STATE.step=0;
+    // 모드 선택 화면 표시
     document.getElementById('mode-select').classList.remove('hidden');
+    // 언어에 맞게 텍스트 업데이트
+    this._updateModeSelect(this.STATE.lang||'ko');
   },
 
   // 장면 표시
@@ -2064,6 +2261,10 @@ const AppController = {
     VisualEngine.setBackground(s.sim||false);
     VisualEngine.setCharacter(s.c||'h');
     VisualEngine.zoomOut();
+    // pip 모드 자동 전환
+    // 시나리오 데이터에 pip 필드가 있으면 해당 모드로
+    // 예: {t:'설명', pip:{mode:'youtube', id:'abc', sec:30}}
+    PipEngine?.handleStepPip(s.pip||null);
 
     if(s.num){
       VisualEngine.setActiveMarker(s.num);
@@ -2127,9 +2328,23 @@ const AppController = {
   togglePause(){
     this.STATE.paused=!this.STATE.paused;
     this._setState(this.STATE.paused?'PAUSED':'ACTIVE');
-    document.getElementById('pause-icon').textContent=this.STATE.paused?'▶':'⏸';
-    if(this.STATE.paused){ VoiceEngine.pause(); clearTimeout(this._autoTimer); }
-    else{ VoiceEngine.resume(); this._autoTimer=setTimeout(()=>this.advance(),10000); }
+    const icon = document.getElementById('pause-icon');
+    const btn  = document.getElementById('btn-pause');
+    if(this.STATE.paused){
+      if(icon) icon.textContent='▶';
+      if(btn)  btn.style.background='rgba(245,166,35,0.4)'; // 멈춤 시 황금색
+      VoiceEngine.pause();
+      clearTimeout(this._autoTimer);
+      // 멈춤 안내 표시
+      this.toast('⏸ 멈춤 — 다시 클릭하면 계속됩니다');
+      IntelMonitor?.showExplanation('⏸ PAUSED — 다시 클릭하면 계속됩니다');
+    } else {
+      if(icon) icon.textContent='⏸';
+      if(btn)  btn.style.background='rgba(0,0,0,0.5)'; // 재생 시 기본색
+      VoiceEngine.resume();
+      this._autoTimer=setTimeout(()=>this.advance(),10000);
+      this.toast('▶ 계속');
+    }
   },
 
   _showComplete(){
@@ -2152,7 +2367,11 @@ const AppController = {
     document.getElementById('cur-lang').textContent={ko:'한국어',en:'English',ja:'日本語',zh:'中文'}[l];
     VoiceEngine.setLang(l);
     this.STATE.phase=0; this.STATE.step=0;
-    this._updateScenes(); this._updateTabs(); this._showStep();
+    // 음성 완전 중단 (재접속 시 반복 방지)
+    window.speechSynthesis.cancel();
+    VoiceEngine.stop();
+    clearTimeout(this._autoTimer);
+    this._updateScenes(); this._updateTabs();
     VoiceRecognitionEngine.setLang(this._getLangCode());
   },
 
