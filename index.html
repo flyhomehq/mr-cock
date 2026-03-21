@@ -79,19 +79,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
 
 /* ── 네비게이션 버튼 ── */
-#btn-prev,#btn-next{position:fixed;top:50%;transform:translateY(-50%);z-index:50;width:56px;height:110px;background:rgba(0,0,0,0.35);backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,0.2);border-radius:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;user-select:none}
+#btn-prev,#btn-next{position:fixed;top:50%;transform:translateY(-50%);z-index:52;width:56px;height:110px;background:rgba(0,0,0,0.35);backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,0.2);border-radius:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;user-select:none}
 #btn-prev{left:6px}
 #btn-next{right:6px}
 #btn-prev:active,#btn-next:active{background:rgba(255,255,255,0.15)}
 .arrow-icon{font-size:32px;color:rgba(255,255,255,0.9)}
-#btn-pause{position:fixed;bottom:132px;left:50%;transform:translateX(-50%);z-index:50;width:46px;height:46px;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;user-select:none}
-#step-bar{position:fixed;bottom:130px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:50;pointer-events:none}
+#btn-pause{position:fixed;bottom:132px;left:50%;transform:translateX(-50%);z-index:52;width:46px;height:46px;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;user-select:none}
+#step-bar{position:fixed;bottom:130px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:48;pointer-events:none}
 .sd{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.25);transition:all 0.3s}
 .sd.active{width:20px;border-radius:3px;background:#F5A623}
 .sd.done{background:rgba(245,166,35,0.45)}
 
 /* ── 대화창 ── */
-#dialog{position:fixed;bottom:0;left:0;right:0;z-index:50;padding:0 10px 10px;pointer-events:none}
+#dialog{position:fixed;bottom:0;left:0;right:0;z-index:55;padding:0 10px 10px;pointer-events:none}
 #dialog-inner{background:rgba(6,12,24,0.93);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:11px 14px 13px}
 #dbadge{background:linear-gradient(90deg,#C47D0A,#F5A623);color:#1a0a00;font-size:12px;font-weight:700;padding:2px 12px;border-radius:20px;display:inline-block;margin-bottom:7px}
 #dtext{font-size:15px;font-weight:500;line-height:1.65;color:#fff;min-height:42px}
@@ -102,7 +102,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .choice-btn:active{background:rgba(255,255,255,0.25)}
 
 /* ── 광고/배너/패널 ── */
-#ad-overlay{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:60;width:min(340px,90vw);background:rgba(8,16,32,0.95);backdrop-filter:blur(16px);border:1px solid rgba(245,166,35,0.5);border-radius:18px;padding:18px 16px 14px;display:none;box-shadow:0 8px 40px rgba(0,0,0,0.6);pointer-events:none}
+#ad-overlay{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:65;width:min(340px,90vw);background:rgba(8,16,32,0.95);backdrop-filter:blur(16px);border:1px solid rgba(245,166,35,0.5);border-radius:18px;padding:18px 16px 14px;display:none;box-shadow:0 8px 40px rgba(0,0,0,0.6);pointer-events:none}
 #ad-overlay.visible{display:block;pointer-events:all;animation:slideUp 0.4s cubic-bezier(0.22,1,0.36,1)}
 @keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 #ad-close{position:absolute;top:5px;right:7px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:14px;cursor:pointer}
@@ -397,6 +397,19 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
           <span class="label" id="qa-mode-label">AI 교관 ON</span>
         </button>
         <p style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px">ON: 음성 질문에 AI가 즉석 답변 / OFF: AI 침묵</p>
+        <!-- Wake-word 설정 -->
+        <div style="margin-top:10px;padding:8px;background:rgba(255,255,255,0.05);border-radius:10px">
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:6px">🎙 Wake-word 설정</div>
+          <div style="display:flex;gap:6px">
+            <button class="host-btn" style="flex:1;padding:6px 4px;font-size:11px" data-action="set-wakeword" data-word="">
+              <span class="label">없음 (MVP 기본)</span>
+            </button>
+            <button class="host-btn" style="flex:1;padding:6px 4px;font-size:11px" data-action="set-wakeword" data-word="헤이 윙맨">
+              <span class="label">헤이 윙맨</span>
+            </button>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:4px">현재: <span id="wakeword-status">없음</span></div>
+        </div>
       </div>
       <div class="host-section">
         <div class="host-section-title">📤 콘텐츠 관리 <span style="font-size:10px;background:rgba(245,166,35,0.2);border:1px solid rgba(245,166,35,0.4);border-radius:8px;padding:2px 8px;color:#F5A623">v1.1</span></div>
@@ -1051,7 +1064,19 @@ const GestureEngine = {
     console.log('[GestureEngine] 초기화 대기 중...');
   },
 
-  async _setup(){
+  async _setup(retryCount=0){
+    // 최대 3회 재시도 — 카메라/모델 로딩 Race Condition 방지
+    if(retryCount > 3){
+      console.warn('[GestureEngine] 최대 재시도 초과. 제스처 인식 비활성화');
+      AppController.toast('제스처 인식 로드 실패 — 터치 모드로 진행');
+      return;
+    }
+    // window._mpLoaded 준비 확인
+    if(!window._mpLoaded){
+      console.log(`[GestureEngine] MediaPipe 대기 중... (${retryCount+1}/3)`);
+      setTimeout(()=>this._setup(retryCount+1), 1500);
+      return;
+    }
     try{
       const { GestureRecognizer, FilesetResolver } = window._mpLoaded;
       const vision = await FilesetResolver.forVisionTasks(
@@ -1072,7 +1097,12 @@ const GestureEngine = {
       AppController.toast('👋 제스처 인식 준비됨');
       this._startLoop();
     }catch(e){
-      console.warn('[GestureEngine] MediaPipe 로드 실패:', e.message);
+      console.warn(`[GestureEngine] 로드 실패 (시도 ${retryCount+1}):`, e.message);
+      if(retryCount < 3){
+        setTimeout(()=>this._setup(retryCount+1), 2000);
+      } else {
+        AppController.toast('제스처 인식 사용 불가 — 터치/음성 모드로 진행');
+      }
     }
   },
 
@@ -1234,10 +1264,35 @@ const VoiceRecognitionEngine = {
 
   setLang(lang){ this.init(lang); },
 
+  // Wake-word 설정값 — AppController.setWakeWord()로 변경 가능
+  // '' = 모든 발화 처리 (MVP 기본값)
+  // '헤이 윙맨' = 호출어 필요
+  _WAKEWORD: '',
+
   _process(said){
+    // ── Wake-word 체크 ──
+    const BUILTIN_WAKES = ['헤이 윙맨','헤이윙맨','hey wingman','wingman'];
+
+    // 내장 Wake-word 감지 → "네, 말씀하세요!" 피드백
+    if(BUILTIN_WAKES.some(w=>said.includes(w))){
+      IntelMonitor?.setLED('voice', true);
+      DialogEngine.show(
+        AppController?.STATE?.lang==='ko'
+          ? '네, 말씀하세요!' : 'Yes, go ahead!'
+      );
+      setTimeout(()=>IntelMonitor?.setLED('voice',false), 2000);
+      return;
+    }
+
+    // 외부 Wake-word 설정 시 포함 안 되면 무시
+    if(this._WAKEWORD && !said.includes(this._WAKEWORD)) return;
+    const cleanSaid = this._WAKEWORD
+      ? said.replace(this._WAKEWORD,'').trim()
+      : said;
+
     // qaMode ON: 모든 발화를 AI에게 전달
     if(AppController?.STATE?.qaMode){
-      AIEngine.ask(said,{mode:'host_qa'}).then(ans=>{
+      AIEngine.ask(cleanSaid||said,{mode:'host_qa'}).then(ans=>{
         if(ans){ DialogEngine.show(ans); }
       });
       return;
@@ -1353,6 +1408,70 @@ const SimConnectBridge = {
     console.log('[SimConnectBridge] 초기화 — Mock 모드로 시작');
     this._startMock(); // 시연용 실시간 데이터 시작
     this._updateStatus('🟡 Mock 모드');
+    // 실제 연결 시도 (MSFS SimConnect Bridge 서버)
+    this._tryConnect();
+  },
+
+  // ── 실제 SimConnect WebSocket 연결 ──
+  // MSFS 실행 중이고 SimConnect Bridge 서버가 켜져 있으면 자동 연결
+  // 연결 실패 시 Mock 모드 유지 (시연에 영향 없음)
+  _tryConnect(){
+    try{
+      // SimConnect Bridge: localhost:2048 (표준 포트)
+      const ws = new WebSocket('ws://localhost:2048');
+      ws.onopen = ()=>{
+        this._connected = true;
+        this._stopMock(); // 실제 연결되면 Mock 중단
+        this._updateStatus('🟢 SimConnect 연결됨');
+        console.log('[SimConnectBridge] ✅ MSFS 연결 성공');
+      };
+      ws.onmessage = (e)=>{
+        try{
+          const data = JSON.parse(e.data);
+          // 실시간 계기값 수신
+          if(data.altitude !== undefined){
+            this._mockData.alt = data.altitude;
+            if(this._callbacks.onAltChanged) this._callbacks.onAltChanged(data.altitude);
+          }
+          if(data.airspeed !== undefined){
+            this._mockData.spd = data.airspeed;
+            if(this._callbacks.onSpeedChanged) this._callbacks.onSpeedChanged(data.airspeed);
+          }
+          if(data.heading !== undefined) this._mockData.hdg = data.heading;
+          if(data.rpm !== undefined) this._mockData.rpm = data.rpm;
+          // 위치 기반 광고 트리거
+          if(data.lat !== undefined && data.lon !== undefined){
+            AdEngine.triggerByLocation(data.lat, data.lon, data.altitude||0);
+            if(this._callbacks.onLocationChanged) this._callbacks.onLocationChanged(data);
+          }
+          // 버튼 조작 감지
+          if(data.button !== undefined){
+            if(this._callbacks.onButtonPressed) this._callbacks.onButtonPressed(data.button);
+          }
+        }catch(err){ console.warn('[SimConnectBridge] 데이터 파싱 오류:', err); }
+      };
+      ws.onclose = ()=>{
+        this._connected = false;
+        this._updateStatus('🟡 Mock 모드');
+        this._startMock(); // 연결 끊기면 Mock 재개
+        console.log('[SimConnectBridge] 연결 종료 — Mock 모드로 전환');
+        // 30초 후 재연결 시도
+        setTimeout(()=>this._tryConnect(), 30000);
+      };
+      ws.onerror = ()=>{
+        // 에러는 조용히 처리 (MSFS 미실행 시 정상)
+        console.log('[SimConnectBridge] MSFS 미연결 — Mock 모드 유지');
+      };
+      this._ws = ws;
+    }catch(e){
+      console.log('[SimConnectBridge] WebSocket 미지원 환경');
+    }
+  },
+
+  _stopMock(){
+    clearInterval(this._mockTimer);
+    this._mockTimer = null;
+    console.log('[SimConnectBridge] Mock 중단 — 실제 데이터 수신 중');
   },
 
   // ── 시연용 Mock 데이터 (실시간 변동) ──
@@ -1529,17 +1648,35 @@ const AdEngine = {
   },
 
   // ── 위치 기반 자동 감지 (v1.1 SimConnect 연동) ──
-  triggerByLocation(lat, lon){
+  triggerByLocation(lat, lon, alt=0){
+    // Hysteresis 적용 — 진입/이탈 반경을 다르게 설정
+    // 진입: landmark.radius (예:5km)
+    // 이탈: landmark.radius * 1.4 (예:7km)
+    // → 경계선 채터링(광고 반복) 방지
     for(const [id, landmark] of Object.entries(LANDMARK_DATA)){
       const dist = this._calcDistance(lat, lon, landmark.lat, landmark.lon);
-      if(dist <= landmark.radius){
+      const enterRadius = landmark.radius;
+      const exitRadius  = landmark.radius * 1.4; // 이탈 반경은 1.4배
+
+      // 고도 필터 — 너무 높으면(10km 이상) 광고 미표시
+      const altKm = alt / 1000;
+      if(altKm > 10){
+        if(this._currentLandmark?.id === id) this._currentLandmark = null;
+        continue;
+      }
+
+      if(dist <= enterRadius){
+        // 진입: 새 랜드마크이면 광고 트리거
         if(this._currentLandmark?.id !== id){
           this.triggerLocationEvent(id);
         }
         return;
+      } else if(dist <= exitRadius && this._currentLandmark?.id === id){
+        // 이탈 반경 내: 아직 안에 있는 것으로 유지 (채터링 방지)
+        return;
       }
     }
-    // 랜드마크 벗어나면 리셋
+    // 모든 랜드마크 이탈 확정
     this._currentLandmark = null;
   },
 
@@ -1806,6 +1943,11 @@ const AppController = {
       case 'lounge-cargo':      this.toast('📦 Cargo Game — 곧 오픈합니다!'); break;
       // 공유
       case 'share-app':         this.shareApp();      // 광고 데모 (심사 시연용)
+      case 'set-wakeword':
+        this.setWakeWord(dataset.word||'');
+        const wsEl=document.getElementById('wakeword-status');
+        if(wsEl) wsEl.textContent=dataset.word||'없음';
+        break;
       case 'demo-ad':           AdEngine.triggerLocationEvent(dataset.landmark); this.togglePanel('host',false); break;
       // PitchEngine — 시연/발표용
       case 'start-pitch':             PitchEngine.start(); break;
@@ -1848,6 +1990,18 @@ const AppController = {
       this.toast('🔗 '+window.location.href.slice(0,40)+'...');
       console.warn('[AppController] 공유 실패:', err);
     }
+  },
+
+  // Wake-word 설정 (호스트가 바꿀 수 있음)
+  // setWakeWord('')     → 없음 (MVP 기본)
+  // setWakeWord('헤이 윙맨') → 활성화
+  setWakeWord(word){
+    VoiceRecognitionEngine._WAKEWORD = word.toLowerCase().trim();
+    const msg = word
+      ? `Wake-word 설정: "${word}"`
+      : 'Wake-word 해제 (모든 음성 인식)';
+    this.toast(`🎙 ${msg}`);
+    console.log('[AppController] Wake-word:', VoiceRecognitionEngine._WAKEWORD);
   },
 
   // 공항 선택 (SimConnect 연동 준비)
