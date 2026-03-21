@@ -351,6 +351,12 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   </div>
 
   <!-- ════ 고정 UI ════ -->
+  <!-- 학습 단계 탭 (조종석/시동/이륙준비) -->
+  <div id="phase-tabs">
+    <div class="phase-tab active" data-action="set-phase" data-phase="0">📖 조종석</div>
+    <div class="phase-tab" data-action="set-phase" data-phase="1">🔋 시동</div>
+    <div class="phase-tab" data-action="set-phase" data-phase="2">✈️ 이륙준비</div>
+  </div>
   <div id="progress-wrap"><div id="progress-bar"></div></div>
   <img id="character" alt="">
   <div id="topbar">
@@ -1140,10 +1146,9 @@ const CameraEngine = {
   },
 
   startCycle(){
-    // pip 항상 표시 (고정 모드 기본)
-    this._fixed = true;
-    document.getElementById('pip').style.opacity='1';
+    // pip 표시 시작 — 고정 모드 아님(toggleFixed로 토글 가능)
     document.getElementById('pip').style.display='block';
+    this._show(); // 16초 표시 후 순환
   },
 
   _show(){
@@ -2248,6 +2253,7 @@ const AppController = {
       case 'close-ad':          AdEngine.close();          break;
       case 'ad-cta':            AdEngine.openCTA();        break;
       case 'hide-lang-banner':  this.hideLangBanner();     break;
+      case 'lang-banner-yes':    this.hideLangBanner(); this.pickLang('en'); break;
       // 호스트
       case 'toggle-qa':         this.toggleQAMode();       break;
       // 라운지
@@ -2541,7 +2547,7 @@ const AppController = {
     this.STATE.langBanner=true;
     document.getElementById('lbmsg').textContent='영어로 말씀하시겠어요?';
     document.getElementById('lbyes').textContent='Yes, English';
-    document.getElementById('lbyes').onclick=()=>{this.hideLangBanner();this.pickLang('en');};
+    document.getElementById('lbyes').setAttribute('data-action','lang-banner-yes');
     document.getElementById('lang-banner').style.display='block';
     setTimeout(()=>this.hideLangBanner(),6000);
   },
