@@ -165,8 +165,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 /* 멈춤 전체화면 오버레이 */
 #pause-overlay{
   position:fixed;inset:0;z-index:150;
-  background:rgba(0,0,0,0.75);
-  backdrop-filter:blur(4px);
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(2px);
   display:none;
   flex-direction:column;
   align-items:center;
@@ -892,6 +892,13 @@ const VoiceEngine = {
   },
 
   // 단일 진입점 — 발음 교정 포함
+  // 언어 변경 — TTS 언어 업데이트
+  setLang(l){
+    const langMap={ko:'ko-KR',en:'en-US',ja:'ja-JP',zh:'zh-CN'};
+    this.lang=langMap[l]||'ko-KR';
+    console.log('[VoiceEngine] 언어 변경:', this.lang);
+  },
+
   play(text){
     if(!this.enabled||!text) return;
     const refined=text
@@ -1250,7 +1257,7 @@ const GestureEngine = {
     const gesture = result.gestures[0][0];
     const name = gesture.categoryName;   // Open_Palm, Pointing_Up 등
     const score = gesture.score;
-    if(score < 0.75) return; // 신뢰도 75% 미만 무시
+    if(score < 0.60) return; // 신뢰도 60% 미만 무시 (어두운 환경 대응)
 
     const now = Date.now();
     // 쿨다운: 같은 제스처 2초 내 중복 방지
@@ -1377,7 +1384,20 @@ const VoiceRecognitionEngine = {
       setTimeout(()=>IntelMonitor?.setLED('voice', false), 1500);
       this._process(said);
     };
-    r.onerror=()=>{};
+    r.onerror=(e)=>{
+      const errMap={
+        'not-allowed':'마이크 권한 거부됨 — 브라우저 설정에서 허용해주세요',
+        'no-speech':'음성이 감지되지 않습니다 — 마이크를 확인해주세요',
+        'network':'네트워크 오류 — 인터넷 연결을 확인해주세요',
+        'audio-capture':'마이크 장치를 찾을 수 없습니다',
+      };
+      const msg=errMap[e.error]||`음성인식 오류: ${e.error}`;
+      console.warn('[STT]', msg);
+      // 심각한 오류는 화면에 표시
+      if(e.error==='not-allowed'||e.error==='audio-capture'){
+        AppController?.toast('🎤 '+msg);
+      }
+    };
     r.onend=()=>{ if(!r._dead) setTimeout(()=>{try{r.start();}catch(x){}},600); };
     this._recog=r;
     setTimeout(()=>{try{r.start();}catch(x){}},200);
@@ -2480,6 +2500,8 @@ const AppController = {
     VoiceEngine.stop();
     clearTimeout(this._autoTimer);
     this._updateScenes(); this._updateTabs();
+    // 모드선택 화면 텍스트도 언어에 맞게 업데이트
+    this._updateModeSelect(l);
     VoiceRecognitionEngine.setLang(this._getLangCode());
   },
 
