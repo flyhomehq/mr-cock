@@ -419,12 +419,11 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <button data-action="close-ad" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:10px;color:#fff;font-size:12px;font-weight:500;padding:8px 4px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;touch-action:manipulation">다시 비행</button>
     </div>
   </div>
-  <!-- 마이크 입력 중 표시 — 크게 -->
-  <div id="voice-listening" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;background:rgba(0,0,0,0.82);border:2px solid rgba(255,80,80,0.8);border-radius:24px;padding:28px 40px;text-align:center;pointer-events:none">
-    <div style="font-size:48px;margin-bottom:10px">🎤</div>
-    <div style="font-size:20px;font-weight:700;color:#ff4444;letter-spacing:1px">듣고 있어요</div>
-    <div style="font-size:13px;color:rgba(255,255,255,0.6);margin-top:6px">말씀해 주세요</div>
-    <div id="voice-heard" style="font-size:14px;color:#FFD700;margin-top:10px;min-height:20px"></div>
+  <!-- 마이크 입력 중 표시 — 우측 하단 소형 -->
+  <div id="voice-listening" style="display:none;position:fixed;bottom:100px;right:12px;z-index:200;background:rgba(0,0,0,0.85);border:1.5px solid rgba(255,80,80,0.7);border-radius:16px;padding:10px 14px;text-align:center;pointer-events:none;min-width:90px">
+    <div style="font-size:22px;margin-bottom:3px">🎤</div>
+    <div style="font-size:12px;font-weight:700;color:#ff4444">듣고 있어요</div>
+    <div id="voice-heard" style="font-size:10px;color:#FFD700;margin-top:4px;max-width:120px;word-break:break-all"></div>
   </div>
 
   <div id="dialog">
@@ -1063,8 +1062,8 @@ const DialogEngine = {
   _timer: null,
 
   show(text, speak=true){
-    // pip 오버레이에도 동시 표시 (시연 임팩트)
-    if(text && text.length>10) IntelMonitor?.showExplanation(text);
+    // pip 오버레이는 AI 답변일 때만 표시 (일반 멘트 제외)
+    // AIEngine.ask() 결과만 표시하도록 IntelMonitor는 직접 호출
     clearInterval(this._timer);
     const el=document.getElementById('dcontent');
     el.textContent=''; let i=0;
@@ -1424,7 +1423,8 @@ const VoiceRecognitionEngine = {
       this._process(said);
     };
     r.onstart=()=>{
-      // 멈춤/패널 열림 상태면 표시 안 함
+      // ACTIVE 상태일 때만 표시 (모드선택/설정 화면 제외)
+      if(AppController?.appState !== 'ACTIVE') return;
       if(AppController?.STATE?.paused) return;
       if(document.querySelector('.panel.open')) return;
       const vi = document.getElementById('voice-listening');
@@ -1618,6 +1618,16 @@ const AIEngine = {
   // API 키 — 아래에 발급받은 키를 넣으세요
   _apiKey: '', // 키는 코드에 넣지 않음 — 설정 패널에서 입력
 
+  // 마크다운 기호 제거 유틸
+  _cleanText(text){
+    return text
+      .replace(/^#+\s*/gm, '')      // # 헤더 제거
+      .replace(/\*\*(.*?)\*\*/g, '$1') // **굵게** 제거
+      .replace(/\*(.*?)\*/g, '$1')   // *이탤릭* 제거
+      .replace(/`(.*?)`/g, '$1')     // `코드` 제거
+      .trim();
+  },
+
   async ask(question, context={}){
     const lang = AppController?.STATE?.lang||'ko';
     // 키 앞뒤 공백 자동 제거
@@ -1668,7 +1678,7 @@ const AIEngine = {
         console.warn('[AIEngine] API HTTP 오류:', r.status, d);
         return fb.default;
       }
-      if(d.content?.[0]?.text) return d.content[0].text;
+      if(d.content?.[0]?.text) return this._cleanText(d.content[0].text);
       return fb.default;
     }catch(e){
       console.warn('[AIEngine] API 오류:', e.message);
