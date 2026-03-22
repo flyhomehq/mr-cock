@@ -281,18 +281,20 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   </div>
 
   <!-- ════ 멈춤 전체화면 오버레이 ════ -->
-  <!-- 멈출 때 화면 가득 표시 — 심사위원에게 기능 시각화 -->
   <div id="pause-overlay">
     <div id="pause-main-text">⏸ PAUSED</div>
     <div id="pause-gesture-guide">
-      <div class="pgc"><span class="em">✊</span>주먹→멈춤</div>
-      <div class="pgc"><span class="em">✋</span>손바닥→질문</div>
-      <div class="pgc"><span class="em">✌️</span>V자→계속</div>
-      <div class="pgc"><span class="em">☝️</span>검지→다음</div>
-      <div class="pgc"><span class="em">👍</span>엄지↑→이해</div>
-      <div class="pgc"><span class="em">👎</span>엄지↓→다시</div>
+      <button class="pgc gesture-btn" data-action="toggle-pause" style="pointer-events:all;cursor:pointer">
+        <span class="em">✌️</span><span>계속</span>
+      </button>
+      <button class="pgc gesture-btn" data-action="ask-question" style="pointer-events:all;cursor:pointer">
+        <span class="em">✋</span><span>질문</span>
+      </button>
+      <button class="pgc gesture-btn" data-action="toggle-pause" style="pointer-events:all;cursor:pointer">
+        <span class="em">✊</span><span>멈춤</span>
+      </button>
     </div>
-    <div id="pause-resume-hint">화면 클릭 또는 ✌️ V자 → 계속</div>
+    <div id="pause-resume-hint">터치 또는 ✌️ 클릭 → 계속</div>
   </div>
 
   <!-- ════ 언어 선택 (최초 진입 화면) ════ -->
@@ -365,7 +367,17 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <button class="top-btn" data-action="open-settings">⚙ 설정</button>
       <button class="top-btn" data-action="change-mode" style="border-color:rgba(255,215,0,0.4);color:#FFD060">← 모드</button>
     </div>
-    
+    <!-- 우측: 제스처 버튼 3개 (터치/클릭 가능) -->
+    <div style="display:flex;gap:5px;align-items:center">
+      <button class="top-btn" data-action="toggle-pause"
+        style="font-size:18px;padding:4px 10px;min-width:42px" title="멈춤/계속">✌️</button>
+      <button class="top-btn" data-action="ask-question"
+        style="font-size:18px;padding:4px 10px;min-width:42px" title="질문">✋</button>
+      <button class="top-btn" data-action="toggle-pause"
+        style="font-size:18px;padding:4px 10px;min-width:42px" title="멈춤">✊</button>
+    </div>
+  </div>
+
   <!-- 제스처 상태 표시 (GestureEngine v1.1) -->
   <div id="gesture-indicator" style="position:fixed;top:30%;left:50%;transform:translateX(-50%);background:rgba(245,166,35,0.92);border-radius:24px;padding:14px 32px;font-size:22px;color:#1a0a00;font-weight:800;letter-spacing:1px;z-index:70;opacity:0;transition:opacity 0.3s;pointer-events:none"></div>
 
@@ -1416,16 +1428,12 @@ const VoiceRecognitionEngine = {
       this._process(said);
     };
     r.onstart=()=>{
-      // 마이크 활성 — 듣고 있어요 표시
+      // 마이크 활성 — 듣고 있어요 상시 표시 (깜빡임 없음)
       const vi = document.getElementById('voice-listening');
       if(vi) vi.style.display='block';
     };
     r.onspeechend=()=>{
-      // 발화 종료 — 잠시 후 숨김 (result 처리 시간 확보)
-      setTimeout(()=>{
-        const vi = document.getElementById('voice-listening');
-        if(vi) vi.style.display='none';
-      }, 2000);
+      // 발화 감지 종료 — 결과 처리 후 숨김은 onresult에서 처리
     };
     r.onerror=(e)=>{
       const vi = document.getElementById('voice-listening');
@@ -1619,11 +1627,17 @@ const AIEngine = {
         })
       });
       const d = await r.json();
+      if(!r.ok){
+        // HTTP 오류 코드 표시 (401=키오류, 429=한도초과, 500=서버오류)
+        const errMsg = d?.error?.message || `HTTP ${r.status}`;
+        AppController?.toast('⚠️ AI 오류: ' + errMsg);
+        console.warn('[AIEngine] API HTTP 오류:', r.status, d);
+        return fb.default;
+      }
       if(d.content?.[0]?.text) return d.content[0].text;
       return fb.default;
     }catch(e){
       console.warn('[AIEngine] API 오류:', e.message);
-      // 오류 원인을 화면에 표시 (디버그용)
       AppController?.toast('⚠️ AI 오류: ' + (e.message||'연결 실패'));
       return fb.default;
     }
@@ -2317,6 +2331,12 @@ const AppController = {
       case 'lang-banner-yes':    this.hideLangBanner(); this.pickLang('en'); break;
       // 호스트
       case 'toggle-qa':         this.toggleQAMode();       break;
+      case 'ask-question':
+        // ✋ 버튼 — 질문 모드 활성화 (voice-listening 팝업 + 안내)
+        DialogEngine.show(this.STATE.lang==='ko'?'질문하세요. 듣고 있습니다.':'Ask your question.', false);
+        const vi2=document.getElementById('voice-listening');
+        if(vi2){ vi2.style.display='block'; setTimeout(()=>{ if(vi2) vi2.style.display='none'; },4000); }
+        break;
       // 라운지
       case 'open-lounge':       this.togglePanel('lounge', true);  break;  // 라운지: 비행 대기 중 콘텐츠 (퀴즈/화물게임 등) — v1.1 콘텐츠 추가 예정
       case 'close-lounge':      this.togglePanel('lounge', false); break;
