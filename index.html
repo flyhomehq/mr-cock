@@ -119,7 +119,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .panel-scroll{flex:1;overflow-y:auto;padding:20px}
 .phdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .ptitle{font-size:19px;font-weight:700;color:#F5A623}
-.pclose{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;color:#fff;font-size:14px;padding:6px 14px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;touch-action:manipulation}
+.pclose{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;color:#fff;font-size:14px;padding:6px 14px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;touch-action:manipulation;position:relative;z-index:999;min-width:60px;min-height:44px}
 .acc-section{border:1px solid rgba(255,255,255,0.1);border-radius:12px;margin-bottom:10px;overflow:hidden}
 .acc-header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;background:rgba(255,255,255,0.04);touch-action:manipulation}
 .acc-title{font-size:14px;font-weight:600;color:#fff}
@@ -517,11 +517,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <!-- SimConnect — 설정 패널 내 -->
       <div style="margin-top:10px;padding:13px 15px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px">
         <div style="font-size:14px;font-weight:700;color:#F5A623;margin-bottom:8px">🔌 SimConnect <span style="font-size:10px;background:rgba(245,166,35,0.2);border:1px solid rgba(245,166,35,0.4);border-radius:8px;padding:2px 8px;color:#F5A623">v1.1</span></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span id="sim-dot" style="width:10px;height:10px;border-radius:50%;background:#F5A623;flex-shrink:0;box-shadow:0 0 6px #F5A623"></span>
-          <span id="sim-status-mini" style="font-size:12px;color:rgba(255,255,255,0.6)">Mock 모드</span>
-        </div>
-        <div id="simconnect-status" style="font-size:12px;color:rgba(255,255,255,0.4);padding:4px 0">⚪ 연결 대기 중 — v1.1에서 활성화</div>
+        <div id="simconnect-status" style="font-size:12px;color:rgba(255,255,255,0.4);padding:4px 0">⚪ v1.1에서 활성화 예정</div>
         <div style="margin-top:10px">
           <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:6px">🛫 출발 공항 설정</div>
           <select id="airport-select" onchange="AppController.setAirport(this.value)"
@@ -1428,8 +1424,9 @@ const VoiceRecognitionEngine = {
       this._process(said);
     };
     r.onstart=()=>{
-      // 멈춤 상태가 아닐 때만 표시
+      // 멈춤/패널 열림 상태면 표시 안 함
       if(AppController?.STATE?.paused) return;
+      if(document.querySelector('.panel.open')) return;
       const vi = document.getElementById('voice-listening');
       if(vi) vi.style.display='block';
     };
@@ -1489,7 +1486,10 @@ const VoiceRecognitionEngine = {
 
     // qaMode ON: 모든 발화를 AI에게 전달
     if(AppController?.STATE?.qaMode){
-      DialogEngine.show('...', false); // 처리 중 표시 (TTS 없음)
+      window.speechSynthesis.cancel(); // 기존 TTS 즉시 중단
+      VoiceEngine.stop();
+      clearTimeout(AppController?._autoTimer);
+      DialogEngine.show('🤖 ...', false); // 처리 중 표시 (TTS 없음)
       AIEngine.ask(cleanSaid||said,{mode:'host_qa'}).then(ans=>{
         if(ans){ DialogEngine.show(ans); }
       });
@@ -2584,7 +2584,10 @@ const AppController = {
         ?`Instrument #${id} is "${name}". Explain to a complete beginner in 2 sentences.`
         :`세스나 172 조종석 ${id}번 계기 "${name}"를 완전 초보자에게 2문장으로 설명해주세요.`;
       const loadMsg=lang==='en'?`#${id} ${name} — AI explaining…`:`${id}번 ${name} — AI 설명 중…`;
-      DialogEngine.show(loadMsg, false); // false = TTS 읽지 않음 (딜레이 방지)
+      window.speechSynthesis.cancel(); // 기존 TTS 즉시 중단
+      VoiceEngine.stop();
+      clearTimeout(AppController?._autoTimer);
+      DialogEngine.show(loadMsg, false);
       AIEngine.ask(q,{mode:'instrument'}).then(ans=>{
         if(ans) DialogEngine.show(ans);
       }).catch(()=>DialogEngine.show(fallbackText));
