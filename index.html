@@ -283,18 +283,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   <!-- ════ 멈춤 전체화면 오버레이 ════ -->
   <div id="pause-overlay">
     <div id="pause-main-text">⏸ PAUSED</div>
-    <div id="pause-gesture-guide">
-      <button class="pgc gesture-btn" data-action="toggle-pause" style="pointer-events:all;cursor:pointer">
-        <span class="em">✌️</span><span>계속</span>
-      </button>
-      <button class="pgc gesture-btn" data-action="ask-question" style="pointer-events:all;cursor:pointer">
-        <span class="em">✋</span><span>질문</span>
-      </button>
-      <button class="pgc gesture-btn" data-action="toggle-pause" style="pointer-events:all;cursor:pointer">
-        <span class="em">✊</span><span>멈춤</span>
-      </button>
-    </div>
-    <div id="pause-resume-hint">터치 또는 ✌️ 클릭 → 계속</div>
+    <div id="pause-resume-hint">화면 터치 또는 상단 ✌️ → 계속</div>
   </div>
 
   <!-- ════ 언어 선택 (최초 진입 화면) ════ -->
@@ -1428,7 +1417,8 @@ const VoiceRecognitionEngine = {
       this._process(said);
     };
     r.onstart=()=>{
-      // 마이크 활성 — 듣고 있어요 상시 표시 (깜빡임 없음)
+      // 멈춤 상태가 아닐 때만 표시
+      if(AppController?.STATE?.paused) return;
       const vi = document.getElementById('voice-listening');
       if(vi) vi.style.display='block';
     };
