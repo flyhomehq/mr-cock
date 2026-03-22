@@ -1547,25 +1547,56 @@ const AIEngine = {
   },
 
   // v1.1: 즉석 AI 답변
+  // API 키 — 아래에 발급받은 키를 넣으세요
+  _apiKey: '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',
+
   async ask(question, context={}){
-    // 오프라인 폴백 멘트
+    const lang = AppController?.STATE?.lang||'ko';
     const fallback={
       ko:{default:'잠시 후 답변드리겠습니다.',host:'좋은 질문입니다. 대표님께 직접 여쭤보시기 바랍니다.'},
       en:{default:'Please wait a moment.',host:'Great question. Please ask the representative directly.'},
+      ja:{default:'少々お待ちください。',host:'良いご質問です。'},
+      zh:{default:'请稍等。',host:'好问题。'},
     };
-    const lang=AppController?.STATE?.lang||'ko';
-    const fb=fallback[lang]||fallback.ko;
-    // 호스트 Q&A 모드면 호스트용 멘트
-    if(context.mode==='host_qa') return fb.host;
-    return fb.default;
-    // ── v1.1: 실제 Claude API 연결 ──
-    // const r=await fetch('https://api.anthropic.com/v1/messages',{
-    //   method:'POST', headers:{'Content-Type':'application/json'},
-    //   body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:150,
-    //     messages:[{role:'user',content:question}]})
-    // });
-    // const d=await r.json();
-    // return d.content?.[0]?.text||fb.default;
+    const fb = fallback[lang]||fallback.ko;
+
+    // API 키 없으면 폴백 응답
+    if(!this._apiKey || this._apiKey === 'YOUR_API_KEY_HERE'){
+      if(context.mode==='host_qa') return fb.host;
+      return fb.default;
+    }
+
+    // 언어별 AI 교관 시스템 프롬프트
+    const sys = {
+      ko:`당신은 CockpitOS의 AI 비행 교관 미스터 콕입니다. 세스나 172 비행 시뮬레이터를 가르칩니다. 초보자에게 친절하고 명확하게 2~3문장으로 답변하세요. 계기판 번호 질문이면 해당 계기를 설명하세요.`,
+      en:`You are Mr. Cock, AI flight instructor of CockpitOS. Teaching Cessna 172 to beginners. Answer kindly in 2-3 sentences.`,
+      ja:`あなたはCockpitOSのAI飛行教官ミスターコックです。セスナ172を教えています。2〜3文で親切に答えてください。`,
+      zh:`您是CockpitOS的AI飞行教官。正在教授塞斯纳172。请用2-3句话简洁回答。`,
+    };
+
+    try{
+      const r = await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key': this._apiKey,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true',
+        },
+        body: JSON.stringify({
+          model:'claude-haiku-4-5-20251001',
+          max_tokens:200,
+          system: sys[lang]||sys.ko,
+          messages:[{role:'user', content:question}]
+        })
+      });
+      const d = await r.json();
+      if(d.content?.[0]?.text) return d.content[0].text;
+      return fb.default;
+    }catch(e){
+      console.warn('[AIEngine] API 오류:', e.message);
+      return fb.default;
+    }
   },
 
   // 호스트 Q&A 모드 답변
