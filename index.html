@@ -65,7 +65,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .phase-tab.active{background:rgba(245,166,35,0.25);border-color:rgba(245,166,35,0.7);color:#FFD060}
 
 /* ── PIP 카메라 (우측 하단, 자동 페이드) ── */
-#pip{position:fixed;bottom:10%;right:0;width:50vw;height:37.5vh;min-width:300px;min-height:200px;border-radius:12px 0 0 12px;border:2px solid rgba(255,220,100,0.5);border-right:none;background:#111;overflow:hidden;z-index:45;transition:opacity 1.2s}
+#pip{position:fixed;bottom:10%;right:0;width:50vw;height:37.5vh;min-width:120px;min-height:80px;max-width:90vw;max-height:70vh;border-radius:12px 0 0 12px;border:2px solid rgba(255,220,100,0.5);border-right:none;background:#111;overflow:hidden;z-index:45;opacity:1}
 #pip video{width:100%;height:100%;object-fit:cover}
 #pip-dot{position:absolute;top:5px;left:6px;width:6px;height:6px;border-radius:50%;background:#22C55E;animation:blink 1.5s infinite}
 /* 설명 오버레이 — AI 교관 설명 시 표시 */
@@ -165,13 +165,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 /* 멈춤 전체화면 오버레이 */
 #pause-overlay{
   position:fixed;inset:0;z-index:150;
-  background:rgba(0,0,0,0);
+  background:rgba(0,0,0,0.5);
   backdrop-filter:none;
   display:none;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  pointer-events:none;
+  pointer-events:all;
+  cursor:pointer;
 }
 #pause-overlay.show{display:flex}
 #pause-main-text{
@@ -281,9 +282,11 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   </div>
 
   <!-- ════ 멈춤 전체화면 오버레이 ════ -->
-  <div id="pause-overlay">
+  <div id="pause-overlay" data-action="toggle-pause">
     <div id="pause-main-text">⏸ PAUSED</div>
-    <div id="pause-resume-hint">화면 터치 또는 상단 ✌️ → 계속</div>
+    <div id="pause-resume-hint" style="margin-top:32px;font-size:clamp(20px,4vw,32px);font-weight:700;color:#FFD700;background:rgba(245,166,35,0.2);border:2px solid rgba(245,166,35,0.6);border-radius:20px;padding:16px 40px;letter-spacing:2px">
+      ▶ 화면 터치 → 계속
+    </div>
   </div>
 
   <!-- ════ 언어 선택 (최초 진입 화면) ════ -->
@@ -419,11 +422,11 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <button data-action="close-ad" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:10px;color:#fff;font-size:12px;font-weight:500;padding:8px 4px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;touch-action:manipulation">다시 비행</button>
     </div>
   </div>
-  <!-- 마이크 입력 중 표시 — 우측 하단 소형 -->
-  <div id="voice-listening" style="display:none;position:fixed;bottom:100px;right:12px;z-index:200;background:rgba(0,0,0,0.85);border:1.5px solid rgba(255,80,80,0.7);border-radius:16px;padding:10px 14px;text-align:center;pointer-events:none;min-width:90px">
-    <div style="font-size:22px;margin-bottom:3px">🎤</div>
-    <div style="font-size:12px;font-weight:700;color:#ff4444">듣고 있어요</div>
-    <div id="voice-heard" style="font-size:10px;color:#FFD700;margin-top:4px;max-width:120px;word-break:break-all"></div>
+  <!-- 마이크 입력 중 표시 — 화면 중앙 크게 -->
+  <div id="voice-listening" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:190;background:rgba(0,0,0,0.88);border:2px solid rgba(255,80,80,0.8);border-radius:20px;padding:16px 28px;text-align:center;pointer-events:none;min-width:220px;max-width:80vw">
+    <div style="font-size:32px;margin-bottom:6px">🎤</div>
+    <div style="font-size:16px;font-weight:700;color:#ff4444;letter-spacing:1px">듣고 있어요</div>
+    <div id="voice-heard" style="font-size:15px;color:#FFD700;margin-top:8px;line-height:1.4;min-height:22px;word-break:break-all"></div>
   </div>
 
   <div id="dialog">
@@ -464,10 +467,23 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
         </div>
       </div>
       <div class="acc-section" id="acc-voice">
-        <div class="acc-header" data-action="toggle-acc" data-acc="acc-voice"><span class="acc-title">🔊 음성</span><span style="display:flex;align-items:center;gap:6px"><span class="acc-current" id="cur-voice">켜짐</span><span class="acc-arrow">▾</span></span></div>
+        <div class="acc-header" data-action="toggle-acc" data-acc="acc-voice"><span class="acc-title">🔊 음성(TTS)</span><span style="display:flex;align-items:center;gap:6px"><span class="acc-current" id="cur-voice">켜짐</span><span class="acc-arrow">▾</span></span></div>
         <div class="acc-body">
           <div class="sel-card picked" id="tts-on" data-action="voice-on"><div class="sel-radio"><div class="sel-dot"></div></div><div class="sel-name">켜짐</div></div>
           <div class="sel-card" id="tts-off" data-action="voice-off"><div class="sel-radio"><div class="sel-dot"></div></div><div class="sel-name">꺼짐</div></div>
+        </div>
+      </div>
+      <!-- 마이크 설정 -->
+      <div class="acc-section" id="acc-mic">
+        <div class="acc-header" data-action="toggle-acc" data-acc="acc-mic"><span class="acc-title">🎤 마이크(음성인식)</span><span style="display:flex;align-items:center;gap:6px"><span class="acc-current" id="cur-mic">켜짐</span><span class="acc-arrow">▾</span></span></div>
+        <div class="acc-body">
+          <div class="sel-card picked" id="mic-on" data-action="mic-on"><div class="sel-radio"><div class="sel-dot"></div></div><div class="sel-name">켜짐</div></div>
+          <div class="sel-card" id="mic-off" data-action="mic-off"><div class="sel-radio"><div class="sel-dot"></div></div><div class="sel-name">꺼짐</div></div>
+          <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px">
+            <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:6px">마이크 표시창</div>
+            <div class="sel-card picked" id="mic-display-on" data-action="mic-display-on"><div class="sel-radio"><div class="sel-dot"></div></div><div class="sel-name">표시</div></div>
+            <div class="sel-card" id="mic-display-off" data-action="mic-display-off"><div class="sel-radio"><div class="sel-dot"></div></div><div class="sel-name">숨김</div></div>
+          </div>
         </div>
       </div>
       <div style="margin-top:12px;padding:12px;background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.3);border-radius:12px;cursor:pointer;touch-action:manipulation" data-action="change-mode">
@@ -1179,22 +1195,19 @@ const CameraEngine = {
   },
 
   startCycle(){
-    // pip 표시 시작 — 고정 모드 아님(toggleFixed로 토글 가능)
-    document.getElementById('pip').style.display='block';
-    this._show(); // 16초 표시 후 순환
+    // pip 항상 표시 (페이드 없음)
+    const pip = document.getElementById('pip');
+    pip.style.display='block';
+    pip.style.opacity='1';
+    this._fixed = true; // 기본 고정
   },
 
   _show(){
-    if(this._fixed) return;
     document.getElementById('pip').style.opacity='1';
-    clearTimeout(this._timer);
-    this._timer=setTimeout(()=>this._hide(), 16000); // 16초 표시
   },
 
   _hide(){
-    if(this._fixed) return;
-    document.getElementById('pip').style.opacity='0';
-    this._timer=setTimeout(()=>this._show(), 32000); // 32초 후 재표시
+    // 페이드 아웃 제거 — 항상 표시
   },
 
   toggleFixed(){
@@ -1478,10 +1491,11 @@ const VoiceRecognitionEngine = {
       this._process(said);
     };
     r.onstart=()=>{
-      // ACTIVE 상태일 때만 표시 (모드선택/설정 화면 제외)
+      // ACTIVE 상태이고 micDisplay ON일 때만 표시
       if(AppController?.appState !== 'ACTIVE') return;
       if(AppController?.STATE?.paused) return;
       if(document.querySelector('.panel.open')) return;
+      if(!AppController?.STATE?.micDisplay) return;
       const vi = document.getElementById('voice-listening');
       if(vi) vi.style.display='block';
     };
@@ -2295,8 +2309,10 @@ const AppController = {
     phase: 0,
     step: 0,
     paused: false,
-    qaMode: true,  // 기본 ON — 음성 자유질문 항상 활성
+    qaMode: true,
     langBanner: false,
+    micEnabled: true,   // 마이크 ON/OFF
+    micDisplay: true,   // 마이크 표시창 ON/OFF
   },
   _scenes: [],
   _autoTimer: null,
@@ -2388,6 +2404,35 @@ const AppController = {
       console.log('[Gesture] 자리 비움 — v1.1 활성화');
     });
 
+    // pip 핀치 리사이즈 (두 손가락으로 크기 조절)
+    (()=>{
+      const pip = document.getElementById('pip');
+      let initDist=0, initW=0, initH=0;
+      pip.addEventListener('touchstart', e=>{
+        if(e.touches.length===2){
+          const dx=e.touches[0].clientX-e.touches[1].clientX;
+          const dy=e.touches[0].clientY-e.touches[1].clientY;
+          initDist=Math.sqrt(dx*dx+dy*dy);
+          initW=pip.offsetWidth;
+          initH=pip.offsetHeight;
+          e.preventDefault();
+        }
+      },{passive:false});
+      pip.addEventListener('touchmove', e=>{
+        if(e.touches.length===2){
+          const dx=e.touches[0].clientX-e.touches[1].clientX;
+          const dy=e.touches[0].clientY-e.touches[1].clientY;
+          const dist=Math.sqrt(dx*dx+dy*dy);
+          const scale=dist/initDist;
+          const newW=Math.min(Math.max(initW*scale, 120), window.innerWidth*0.9);
+          const newH=Math.min(Math.max(initH*scale, 80), window.innerHeight*0.7);
+          pip.style.width=newW+'px';
+          pip.style.height=newH+'px';
+          e.preventDefault();
+        }
+      },{passive:false});
+    })();
+
     // SimConnect 콜백 연결 (v1.1 활성화)
     SimConnectBridge.onButtonPressed(data=>{
       console.log('[SimConnect] 버튼 조작:', data);
@@ -2455,6 +2500,36 @@ const AppController = {
         AIEngine.saveKey(inp?.value||'');
         break;
       }
+      case 'mic-on':
+        this.STATE.micEnabled = true;
+        document.getElementById('mic-on')?.classList.add('picked');
+        document.getElementById('mic-off')?.classList.remove('picked');
+        document.getElementById('cur-mic').textContent = '켜짐';
+        VoiceRecognitionEngine.init(this._getLangCode());
+        this.toast('🎤 마이크 켜짐');
+        break;
+      case 'mic-off':
+        this.STATE.micEnabled = false;
+        document.getElementById('mic-on')?.classList.remove('picked');
+        document.getElementById('mic-off')?.classList.add('picked');
+        document.getElementById('cur-mic').textContent = '꺼짐';
+        VoiceRecognitionEngine.stop();
+        document.getElementById('voice-listening').style.display='none';
+        this.toast('🎤 마이크 꺼짐');
+        break;
+      case 'mic-display-on':
+        this.STATE.micDisplay = true;
+        document.getElementById('mic-display-on')?.classList.add('picked');
+        document.getElementById('mic-display-off')?.classList.remove('picked');
+        this.toast('🎤 마이크 표시 켜짐');
+        break;
+      case 'mic-display-off':
+        this.STATE.micDisplay = false;
+        document.getElementById('mic-display-on')?.classList.remove('picked');
+        document.getElementById('mic-display-off')?.classList.add('picked');
+        document.getElementById('voice-listening').style.display='none';
+        this.toast('🎤 마이크 표시 숨김');
+        break;
       // 라운지
       case 'open-lounge':       this.togglePanel('lounge', true);  break;  // 라운지: 비행 대기 중 콘텐츠 (퀴즈/화물게임 등) — v1.1 콘텐츠 추가 예정
       case 'close-lounge':      this.togglePanel('lounge', false); break;
@@ -2640,10 +2715,7 @@ const AppController = {
     this._renderDots();
 
     clearTimeout(this._autoTimer);
-    // 멈춤 상태가 아닐 때만 자동 타이머 등록
-    if(!this.STATE.paused){
-      this._autoTimer=setTimeout(()=>this.advance(), 12000);
-    }
+    // 자동 진행 없음 — 사람이 직접 다음/이전 버튼 또는 음성으로 넘김
   },
 
   // 번호로 계기 설명
@@ -2716,8 +2788,7 @@ const AppController = {
     } else {
       if(icon) icon.textContent='⏸';
       if(btn)  btn.style.background='rgba(0,0,0,0.5)';
-      clearTimeout(this._autoTimer);   // 혹시 남은 타이머 제거 후 새로 시작
-      this._autoTimer=setTimeout(()=>this.advance(), 12000);
+      clearTimeout(this._autoTimer);   // 자동 진행 없음
       if(overlay) overlay.classList.remove('show');
       this.toast('▶ 계속');
     }
@@ -2819,7 +2890,7 @@ const AppController = {
         if(btn)  btn.style.background='rgba(0,0,0,0.5)';
         document.getElementById('pause-overlay')?.classList.remove('show');
         VoiceEngine.resume();
-        this._autoTimer = setTimeout(()=>this.advance(), 1500);
+        // 자동 재개 없음 — 사람이 직접 조작
       }
     }
     document.getElementById(name+'-panel').classList.toggle('open', isOpen);
