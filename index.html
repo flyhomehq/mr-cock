@@ -360,14 +360,11 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   <div id="progress-wrap"><div id="progress-bar"></div></div>
   <img id="character" alt="">
   <div id="topbar">
-    <!-- 좌측: 설정 + 모드변경 + QR -->
+    <!-- 좌측: 설정 + 모드변경 -->
     <div style="display:flex;gap:6px;align-items:center">
       <button class="top-btn" data-action="open-settings">⚙ 설정</button>
       <button class="top-btn" data-action="change-mode" style="border-color:rgba(255,215,0,0.4);color:#FFD060">← 모드</button>
-      <button class="top-btn" data-action="show-qr" title="QR코드">📲 QR</button>
     </div>
-    <!-- 우측: 호스트 -->
-    <button class="top-btn host" data-action="open-host" style="position:absolute;right:12px;top:50%;transform:translateY(-50%)">🎓 호스트</button>
     
   <!-- 제스처 상태 표시 (GestureEngine v1.1) -->
   <div id="gesture-indicator" style="position:fixed;top:30%;left:50%;transform:translateX(-50%);background:rgba(245,166,35,0.92);border-radius:24px;padding:14px 32px;font-size:22px;color:#1a0a00;font-weight:800;letter-spacing:1px;z-index:70;opacity:0;transition:opacity 0.3s;pointer-events:none"></div>
@@ -437,13 +434,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   <div id="settings-panel" class="panel">
     <div class="panel-scroll">
       <div class="phdr"><span class="ptitle">⚙ 설정</span><button class="pclose" data-action="close-settings">닫기</button></div>
-      <!-- 공유/라운지 — 설정 패널 안으로 이동 -->
-      <!-- SimConnect 상태 미니 표시 — 최상단 (중요 기능) -->
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;margin-bottom:8px">
-        <span id="sim-dot" style="width:10px;height:10px;border-radius:50%;background:#F5A623;flex-shrink:0;box-shadow:0 0 6px #F5A623"></span>
-        <span style="font-size:12px;color:rgba(255,255,255,0.7);font-weight:600">SimConnect</span>
-        <span id="sim-status-mini" style="font-size:11px;color:rgba(255,255,255,0.4);margin-left:auto">Mock 모드</span>
-      </div>
+      <!-- 공유/QR/라운지 버튼 행 -->
       <div class="host-section" style="display:flex;gap:8px;padding:8px 0;flex-wrap:wrap">
         <button class="host-btn" data-action="share-app" style="flex:1;min-width:80px">
           <span class="icon">🔗</span><span class="label">공유하기</span>
@@ -453,10 +444,6 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
         </button>
         <button class="host-btn" data-action="open-lounge" style="flex:1;min-width:80px">
           <span class="icon">☕</span><span class="label">Lounge</span>
-        </button>
-        <!-- SimConnect 버튼 — 설정 최상단 배치 (중요) -->
-        <button class="host-btn" data-action="open-host" style="flex:1;min-width:80px;border-color:rgba(245,166,35,0.5);color:#FFD060">
-          <span class="icon">🔌</span><span class="label">SimConnect</span>
         </button>
       </div>
       <div class="acc-section open" id="acc-lang">
@@ -482,23 +469,17 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <!-- 호스트 모드 진입 버튼 — 학습모드 변경 다음 -->
       <div style="margin-top:10px;padding:12px;background:rgba(100,60,0,0.15);border:1px solid rgba(245,166,35,0.2);border-radius:12px;cursor:pointer;touch-action:manipulation" data-action="open-host">
         <div style="font-size:14px;font-weight:600;color:#F5A623;margin-bottom:2px">🎓 호스트 모드</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.4)">시연 / 광고 / AI 설정</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.4)">시연 / 광고 설정</div>
       </div>
-    </div>
-  </div>
 
-  <!-- 호스트 패널 -->
-  <div id="host-panel" class="panel">
-    <div class="panel-scroll">
-      <div class="phdr"><span class="ptitle">🎓 호스트 모드</span><button class="pclose" data-action="close-host">닫기</button></div>
-      <div class="host-section">
-        <div class="host-section-title">🤖 AI 교관 음성 응답</div>
+      <!-- AI 교관 설정 — 설정 패널 내 -->
+      <div style="margin-top:10px;padding:13px 15px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px">
+        <div style="font-size:14px;font-weight:700;color:#F5A623;margin-bottom:8px">🤖 AI 교관 음성 응답</div>
         <button class="host-btn" id="qa-mode-btn" data-action="toggle-qa">
           <span class="icon">🟢</span>
           <span class="label" id="qa-mode-label">AI 교관 ON</span>
         </button>
         <p style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px">ON: 음성 질문에 AI가 즉석 답변 / OFF: AI 침묵</p>
-        <!-- Wake-word 설정 -->
         <div style="margin-top:10px;padding:8px;background:rgba(255,255,255,0.05);border-radius:10px">
           <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:6px">🎙 Wake-word 설정</div>
           <div style="display:flex;gap:6px">
@@ -512,6 +493,34 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
           <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:4px">현재: <span id="wakeword-status">없음</span></div>
         </div>
       </div>
+
+      <!-- SimConnect — 설정 패널 내 -->
+      <div style="margin-top:10px;padding:13px 15px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px">
+        <div style="font-size:14px;font-weight:700;color:#F5A623;margin-bottom:8px">🔌 SimConnect <span style="font-size:10px;background:rgba(245,166,35,0.2);border:1px solid rgba(245,166,35,0.4);border-radius:8px;padding:2px 8px;color:#F5A623">v1.1</span></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span id="sim-dot" style="width:10px;height:10px;border-radius:50%;background:#F5A623;flex-shrink:0;box-shadow:0 0 6px #F5A623"></span>
+          <span id="sim-status-mini" style="font-size:12px;color:rgba(255,255,255,0.6)">Mock 모드</span>
+        </div>
+        <div id="simconnect-status" style="font-size:12px;color:rgba(255,255,255,0.4);padding:4px 0">⚪ 연결 대기 중 — v1.1에서 활성화</div>
+        <div style="margin-top:10px">
+          <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:6px">🛫 출발 공항 설정</div>
+          <select id="airport-select" onchange="AppController.setAirport(this.value)"
+            style="width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;padding:6px 10px;font-family:'Noto Sans KR',sans-serif;font-size:12px;cursor:pointer">
+            <option value="RKSI">인천국제공항 (RKSI)</option>
+            <option value="RKSS">김포국제공항 (RKSS)</option>
+            <option value="RKPC">제주국제공항 (RKPC)</option>
+            <option value="RKPK">김해국제공항 (RKPK)</option>
+          </select>
+          <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:4px">v1.1에서 시뮬레이터 자동 동기화</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 호스트 패널 -->
+  <div id="host-panel" class="panel">
+    <div class="panel-scroll">
+      <div class="phdr"><span class="ptitle">🎓 호스트 모드</span><button class="pclose" data-action="close-host">닫기</button></div>
       <div class="host-section">
         <div class="host-section-title">📤 콘텐츠 관리 <span style="font-size:10px;background:rgba(245,166,35,0.2);border:1px solid rgba(245,166,35,0.4);border-radius:8px;padding:2px 8px;color:#F5A623">v1.1</span></div>
         <button class="host-btn" data-action="v11-placeholder"><span class="icon">📷</span><span class="label">사진 업로드</span><span class="tag">준비중</span></button>
@@ -530,12 +539,9 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
         </button>
         <p style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px">
           심사위원/투자자 시연용 — 실제 제품에서 제거 가능<br>
-          <span style="color:rgba(255,220,100,0.5)">
-            단축키: F = 피치 시작 | ESC = 종료
-          </span>
+          <span style="color:rgba(255,220,100,0.5)">단축키: F = 피치 시작 | ESC = 종료</span>
         </p>
       </div>
-
       <!-- 광고 데모 트리거 (심사 시연용) -->
       <div class="host-section">
         <div class="host-section-title">🎯 광고 데모 <span style="font-size:10px;background:rgba(34,197,94,0.2);border:1px solid rgba(34,197,94,0.4);border-radius:8px;padding:2px 8px;color:#4ade80">시연용</span></div>
@@ -544,24 +550,6 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
         <button class="host-btn" data-action="demo-ad" data-landmark="jeju_island"><span class="icon">🌊</span><span class="label">제주도 상공</span></button>
         <button class="host-btn" data-action="demo-ad" data-landmark="busan_haeundae"><span class="icon">🦞</span><span class="label">부산 해운대</span></button>
         <button class="host-btn" data-action="demo-ad" data-landmark="incheon_airport"><span class="icon">✈️</span><span class="label">인천공항 상공</span></button>
-      </div>
-
-      <!-- SimConnect 상태 (그릇) -->
-      <div class="host-section">
-        <div class="host-section-title">🔌 SimConnect <span style="font-size:10px;background:rgba(245,166,35,0.2);border:1px solid rgba(245,166,35,0.4);border-radius:8px;padding:2px 8px;color:#F5A623">v1.1</span></div>
-        <div id="simconnect-status" style="font-size:12px;color:rgba(255,255,255,0.4);padding:8px 4px">⚪ 연결 대기 중 — v1.1에서 활성화</div>
-        <!-- 출발 공항 설정 (SimConnect 연동 준비) -->
-        <div style="margin-top:10px">
-          <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:6px">🛫 출발 공항 설정</div>
-          <select id="airport-select" onchange="AppController.setAirport(this.value)"
-            style="width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;padding:6px 10px;font-family:'Noto Sans KR',sans-serif;font-size:12px;cursor:pointer">
-            <option value="RKSI">인천국제공항 (RKSI)</option>
-            <option value="RKSS">김포국제공항 (RKSS)</option>
-            <option value="RKPC">제주국제공항 (RKPC)</option>
-            <option value="RKPK">김해국제공항 (RKPK)</option>
-          </select>
-          <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:4px">v1.1에서 시뮬레이터 자동 동기화</div>
-        </div>
       </div>
     </div>
   </div>
@@ -1405,6 +1393,7 @@ const VoiceRecognitionEngine = {
       this._process(said);
     };
     r.onerror=(e)=>{
+      if(e.error==='aborted') return; // aborted는 재시작 과정의 정상 현상 — 무시
       const errMap={
         'not-allowed':'마이크 권한 거부됨 — 브라우저 설정에서 허용해주세요',
         'no-speech':'음성이 감지되지 않습니다 — 마이크를 확인해주세요',
@@ -1413,12 +1402,11 @@ const VoiceRecognitionEngine = {
       };
       const msg=errMap[e.error]||`음성인식 오류: ${e.error}`;
       console.warn('[STT]', msg);
-      // 심각한 오류는 화면에 표시
       if(e.error==='not-allowed'||e.error==='audio-capture'){
         AppController?.toast('🎤 '+msg);
       }
     };
-    r.onend=()=>{ if(!r._dead) setTimeout(()=>{try{r.start();}catch(x){}},600); };
+    r.onend=()=>{ if(!r._dead) setTimeout(()=>{ try{ if(!r._dead) r.start(); }catch(x){} }, 800); };
     this._recog=r;
     setTimeout(()=>{try{r.start();}catch(x){}},200);
   },
@@ -1435,21 +1423,23 @@ const VoiceRecognitionEngine = {
     const BUILTIN_WAKES = ['헤이 윙맨','헤이윙맨','hey wingman','wingman'];
 
     // 내장 Wake-word 감지 → "네, 말씀하세요!" 피드백
+    let cleanSaid = said;
+    // Wake-word 포함 시 피드백 후 남은 발화로 계속 처리
     if(BUILTIN_WAKES.some(w=>said.includes(w))){
       IntelMonitor?.setLED('voice', true);
-      DialogEngine.show(
-        AppController?.STATE?.lang==='ko'
-          ? '네, 말씀하세요!' : 'Yes, go ahead!'
-      );
-      setTimeout(()=>IntelMonitor?.setLED('voice',false), 2000);
-      return;
+      for(const w of BUILTIN_WAKES) cleanSaid = cleanSaid.replace(w,'').trim();
+      if(!cleanSaid){
+        DialogEngine.show(AppController?.STATE?.lang==='ko' ? '네, 말씀하세요!' : 'Yes, go ahead!');
+        setTimeout(()=>IntelMonitor?.setLED('voice',false), 2000);
+        return;
+      }
     }
 
     // 외부 Wake-word 설정 시 포함 안 되면 무시
     if(this._WAKEWORD && !said.includes(this._WAKEWORD)) return;
-    const cleanSaid = this._WAKEWORD
-      ? said.replace(this._WAKEWORD,'').trim()
-      : said;
+    cleanSaid = this._WAKEWORD
+      ? cleanSaid.replace(this._WAKEWORD,'').trim()
+      : cleanSaid;
 
     // qaMode ON: 모든 발화를 AI에게 전달
     if(AppController?.STATE?.qaMode){
@@ -2347,17 +2337,23 @@ const AppController = {
   // QR코드 팝업 — 현재 URL을 QR로 생성 (공유용)
   // 배치 위치: 설정 패널 → 공유하기 옆
   showQR(){
-    const url=window.location.href;
-    const qrSrc=`https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(url)}&choe=UTF-8`;
+    const url='https://flyhomehq.github.io/mr-cock/';
+    // Google Charts API는 deprecated → goqr.me API 사용
+    const qrSrc=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
     document.getElementById('qr-popup')?.remove();
     const el=document.createElement('div');
     el.id='qr-popup';
-    el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:210;background:rgba(10,15,28,0.97);border:1.5px solid rgba(245,166,35,0.5);border-radius:20px;padding:24px;text-align:center;color:#fff;font-family:Noto Sans KR,sans-serif';
-    el.innerHTML=`<div style="font-size:14px;color:#F5A623;margin-bottom:12px">📲 QR코드로 접속</div>
+    el.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;z-index:210;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6)';
+    el.innerHTML=`<div style="background:rgba(10,15,28,0.97);border:1.5px solid rgba(245,166,35,0.5);border-radius:20px;padding:24px;text-align:center;color:#fff;font-family:Noto Sans KR,sans-serif;max-width:300px;width:90%">
+      <div style="font-size:14px;color:#F5A623;margin-bottom:12px">📲 QR코드로 접속</div>
       <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:8px;word-break:break-all;padding:6px;background:rgba(255,255,255,0.05);border-radius:8px">${url}</div>
-      <img src="${qrSrc}" style="width:240px;height:240px;border-radius:8px;background:#fff;padding:6px">
+      <img src="${qrSrc}" style="width:200px;height:200px;border-radius:8px;background:#fff;padding:6px" onerror="this.alt='QR 생성 오류 — 인터넷 연결 확인'">
       <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:10px">카메라로 스캔 → 앱 접속</div>
-      <button onclick="document.getElementById('qr-popup').remove()" style="margin-top:12px;background:none;border:1px solid rgba(255,255,255,0.3);border-radius:12px;color:#fff;padding:6px 20px;cursor:pointer;font-family:inherit;touch-action:manipulation">닫기</button>`;
+      <button id="qr-close-btn" style="margin-top:12px;background:none;border:1px solid rgba(255,255,255,0.3);border-radius:12px;color:#fff;padding:6px 20px;cursor:pointer;font-family:inherit;touch-action:manipulation">닫기</button>
+    </div>`;
+    // 배경 클릭 또는 닫기 버튼으로 닫기
+    el.addEventListener('click',(e)=>{ if(e.target===el) el.remove(); });
+    el.querySelector('#qr-close-btn').addEventListener('click',()=>el.remove());
     document.body.appendChild(el);
   },
 
@@ -2476,12 +2472,24 @@ const AppController = {
     const lang=this.STATE.lang;
     const name=inst.name[lang]||inst.name.ko;
     const desc=inst.desc[lang]||inst.desc.ko;
-    const text=lang==='en'
+    const fallbackText=lang==='en'
       ?`Number ${id}, ${name}. ${desc}`
       :`${id}번 ${name}입니다. ${desc}`;
-    DialogEngine.show(text);
     VisualEngine.setActiveMarker(id);
     VisualEngine.zoomTo(inst.x, inst.y, 4000);
+    // AI 교관 ON이면 Claude API 호출, OFF면 고정 텍스트
+    if(this.STATE.qaMode){
+      const q=lang==='en'
+        ?`Instrument #${id} is "${name}". Explain to a complete beginner in 2 sentences.`
+        :`세스나 172 조종석 ${id}번 계기 "${name}"를 완전 초보자에게 2문장으로 설명해주세요.`;
+      const loadMsg=lang==='en'?`#${id} ${name} — AI explaining…`:`${id}번 ${name} — AI 설명 중…`;
+      DialogEngine.show(loadMsg);
+      AIEngine.ask(q,{mode:'instrument'}).then(ans=>{
+        if(ans) DialogEngine.show(ans);
+      }).catch(()=>DialogEngine.show(fallbackText));
+    } else {
+      DialogEngine.show(fallbackText);
+    }
   },
 
   // 네비게이션
@@ -2567,9 +2575,13 @@ const AppController = {
   // Q&A 모드
   toggleQAMode(){
     this.STATE.qaMode=!this.STATE.qaMode;
-    document.getElementById('qa-mode-btn').querySelector('.icon').textContent=this.STATE.qaMode?'🔴':'🟢';
-    document.getElementById('qa-mode-label').textContent=this.STATE.qaMode?'질문 대기 OFF':'질문 대기 ON';
-    this.toast(this.STATE.qaMode?'질문 대기 모드 ON':'질문 대기 모드 OFF');
+    const on = this.STATE.qaMode;
+    const btn = document.getElementById('qa-mode-btn');
+    if(btn){
+      btn.querySelector('.icon').textContent = on ? '🟢' : '⚫';
+      btn.querySelector('.label').textContent = on ? 'AI 교관 ON' : 'AI 교관 OFF';
+    }
+    this.toast(on ? '🤖 AI 교관 ON — 음성 질문에 즉석 답변' : '🤖 AI 교관 OFF');
   },
 
   // 언어 배너
@@ -2592,6 +2604,8 @@ const AppController = {
   // 패널 전환 시 음성 즉시 중단 (탭 이동 중 설명 겹침 방지)
   togglePanel(name, isOpen){
     if(isOpen){
+      // 패널 열릴 때 QR팝업 자동 닫기
+      document.getElementById('qr-popup')?.remove();
       window.speechSynthesis.cancel();
       VoiceEngine.stop();
       clearTimeout(this._autoTimer);
