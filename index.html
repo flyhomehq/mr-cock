@@ -977,7 +977,7 @@ const VoiceEngine = {
         if(sc) sc.style.display='none';
         // 0.8초 후 음성인식 새로 시작 (에코 방지 + 빠른 재개)
         setTimeout(()=>{
-          if(!VoiceEngine._isSpeaking){
+          if(!VoiceEngine._isSpeaking && !VoiceRecognitionEngine._recog){
             VoiceRecognitionEngine.init(VoiceRecognitionEngine._lang);
           }
         }, 800);
@@ -1428,7 +1428,26 @@ const VoiceRecognitionEngine = {
     this._lang=lang;
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){ console.warn('[VoiceRecognitionEngine] 미지원 브라우저'); return; }
-    if(this._recog){ this._recog._dead=true; try{this._recog.abort();}catch(e){} }
+
+    // 이전 인식기 완전 종료 — 이벤트 핸들러까지 제거
+    if(this._recog){
+      this._recog._dead=true;
+      this._recog.onresult=null;
+      this._recog.onerror=null;
+      this._recog.onend=null;
+      this._recog.onstart=null;
+      this._recog.onspeechend=null;
+      try{ this._recog.stop(); }catch(e){}  // abort 대신 stop 사용
+      this._recog=null;
+    }
+
+    // 이전 인식기가 완전히 종료될 시간 확보 후 새 인식기 시작
+    setTimeout(()=>this._startNew(lang), 300);
+  },
+
+  _startNew(lang){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR) return;
     const r=new SR();
     r.lang=lang; r.continuous=true; r.interimResults=true; r._dead=false;
     r._lastFinal = ''; // 중복 처리 방지
@@ -1486,16 +1505,25 @@ const VoiceRecognitionEngine = {
       }
     };
     r.onend=()=>{
-      // TTS 재생 중이거나 dead 상태면 재시작 안 함 (띵동 소리 방지)
+      // dead 상태거나 TTS 중이면 재시작 안 함
       if(r._dead) return;
       if(VoiceEngine._isSpeaking) return;
-      setTimeout(()=>{ try{ if(!r._dead && !VoiceEngine._isSpeaking) r.start(); }catch(x){} }, 800);
+      // 현재 _recog가 이 인식기가 아니면 (언어 변경됨) 재시작 안 함
+      if(VoiceRecognitionEngine._recog !== r) return;
+      setTimeout(()=>{
+        try{
+          if(!r._dead && !VoiceEngine._isSpeaking && VoiceRecognitionEngine._recog===r){
+            r.start();
+          }
+        }catch(x){}
+      }, 800);
     };
     this._recog=r;
     setTimeout(()=>{try{r.start();}catch(x){}},200);
   },
 
   setLang(lang){ this.init(lang); },
+  stop(){ if(this._recog){ this._recog._dead=true; this._recog.onresult=null; this._recog.onerror=null; this._recog.onend=null; try{this._recog.stop();}catch(e){} this._recog=null; } },
 
   // Wake-word 설정값 — AppController.setWakeWord()로 변경 가능
   // '' = 모든 발화 처리 (MVP 기본값)
@@ -2722,7 +2750,11 @@ const AppController = {
     this._updateScenes(); this._updateTabs();
     // 모드선택 화면 텍스트도 언어에 맞게 업데이트
     this._updateModeSelect(l);
-    VoiceRecognitionEngine.setLang(this._getLangCode());
+    // 기존 음성인식 완전 종료 후 새 언어로 재시작
+    VoiceRecognitionEngine.stop();
+    setTimeout(()=>{
+      VoiceRecognitionEngine.init(this._getLangCode());
+    }, 500);
   },
 
   _getLangCode(){ return {ko:'ko-KR',en:'en-US',ja:'ja-JP',zh:'zh-CN'}[this.STATE.lang]||'ko-KR'; },
