@@ -114,7 +114,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .lbtn{padding:6px 18px;border-radius:18px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'Noto Sans KR',sans-serif;margin:0 3px;touch-action:manipulation}
 .lbtn.yes{background:#F5A623;color:#1a0a00}
 .lbtn.no{background:rgba(255,255,255,0.15);color:#fff}
-.panel{position:fixed;inset:0;background:rgba(4,8,18,0.97);z-index:80;display:none;flex-direction:column;overflow:hidden}
+.panel{position:fixed;inset:0;background:rgba(4,8,18,0.97);z-index:200;display:none;flex-direction:column;overflow:hidden}
 .panel.open{display:flex}
 .panel-scroll{flex:1;overflow-y:auto;padding:20px}
 .phdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
@@ -2717,8 +2717,9 @@ const AppController = {
   // 패널 전환 시 음성 즉시 중단 (탭 이동 중 설명 겹침 방지)
   togglePanel(name, isOpen){
     if(isOpen){
-      // 패널 열릴 때 QR팝업 자동 닫기
+      // 패널 열릴 때 QR팝업/듣고있어요 자동 닫기
       document.getElementById('qr-popup')?.remove();
+      document.getElementById('voice-listening').style.display='none';
       // API 키 상태 표시 업데이트
       AIEngine._updateKeyStatus();
       window.speechSynthesis.cancel();
