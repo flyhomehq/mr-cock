@@ -925,27 +925,33 @@ const VoiceEngine = {
       .replace(/\bRPM\b/g,'알피엠');
     window.speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(refined);
-    u.lang=this.lang; u.rate=0.88; u.pitch=0.75; // 남성 음성 (낮은 pitch) u.pitch=0.9; u.volume=1;
+    u.lang=this.lang; u.rate=0.92; u.pitch=0.75; u.volume=1;
     const trySpeak=()=>{
       const vs=window.speechSynthesis.getVoices();
       if(!vs.length){setTimeout(trySpeak,200);return;}
       const v=vs.find(v=>v.lang===this.lang)||vs.find(v=>v.lang&&v.lang.startsWith(this.lang.split('-')[0]));
       if(v) u.voice=v;
       u.onstart=()=>{
-      // 말하기 시작 → 캐릭터 흔들기 + 스캔라인 활성
-      document.getElementById('character')?.classList.add('speaking');
-      document.getElementById('pip')?.classList.add('scanning');
-      const sc=document.getElementById('vision-scanner');
-      if(sc) sc.style.display='block';
-    };
-    u.onend=()=>{
-      // 말하기 종료 → 효과 제거
-      document.getElementById('character')?.classList.remove('speaking');
-      document.getElementById('pip')?.classList.remove('scanning');
-      const sc=document.getElementById('vision-scanner');
-      if(sc) sc.style.display='none';
-    };
-    window.speechSynthesis.speak(u);
+        // TTS 시작 → 음성인식 일시 중단 (띠링 소리 방지)
+        try{ VoiceRecognitionEngine?._recog?.abort(); }catch(x){}
+        document.getElementById('character')?.classList.add('speaking');
+        document.getElementById('pip')?.classList.add('scanning');
+        const sc=document.getElementById('vision-scanner');
+        if(sc) sc.style.display='block';
+      };
+      u.onend=()=>{
+        // TTS 종료 → 음성인식 재시작 (1초 딜레이로 에코 방지)
+        document.getElementById('character')?.classList.remove('speaking');
+        document.getElementById('pip')?.classList.remove('scanning');
+        const sc=document.getElementById('vision-scanner');
+        if(sc) sc.style.display='none';
+        setTimeout(()=>{
+          if(VoiceRecognitionEngine?._recog && !VoiceRecognitionEngine._recog._dead){
+            try{ VoiceRecognitionEngine._recog.start(); }catch(x){}
+          }
+        }, 1000);
+      };
+      window.speechSynthesis.speak(u);
     };
     setTimeout(trySpeak,80);
   },
@@ -1474,6 +1480,7 @@ const VoiceRecognitionEngine = {
 
     // qaMode ON: 모든 발화를 AI에게 전달
     if(AppController?.STATE?.qaMode){
+      DialogEngine.show('...', false); // 처리 중 표시 (TTS 없음)
       AIEngine.ask(cleanSaid||said,{mode:'host_qa'}).then(ans=>{
         if(ans){ DialogEngine.show(ans); }
       });
@@ -2495,7 +2502,10 @@ const AppController = {
     this._renderDots();
 
     clearTimeout(this._autoTimer);
-    this._autoTimer=setTimeout(()=>this.advance(), 12000);
+    // 멈춤 상태가 아닐 때만 자동 타이머 등록
+    if(!this.STATE.paused){
+      this._autoTimer=setTimeout(()=>this.advance(), 12000);
+    }
   },
 
   // 번호로 계기 설명
@@ -2516,7 +2526,7 @@ const AppController = {
         ?`Instrument #${id} is "${name}". Explain to a complete beginner in 2 sentences.`
         :`세스나 172 조종석 ${id}번 계기 "${name}"를 완전 초보자에게 2문장으로 설명해주세요.`;
       const loadMsg=lang==='en'?`#${id} ${name} — AI explaining…`:`${id}번 ${name} — AI 설명 중…`;
-      DialogEngine.show(loadMsg);
+      DialogEngine.show(loadMsg, false); // false = TTS 읽지 않음 (딜레이 방지)
       AIEngine.ask(q,{mode:'instrument'}).then(ans=>{
         if(ans) DialogEngine.show(ans);
       }).catch(()=>DialogEngine.show(fallbackText));
@@ -2557,17 +2567,16 @@ const AppController = {
     if(this.STATE.paused){
       if(icon) icon.textContent='▶';
       if(btn)  btn.style.background='rgba(245,166,35,0.4)';
-      VoiceEngine.pause();
-      clearTimeout(this._autoTimer);
-      // 전체화면 멈춤 오버레이 표시
+      window.speechSynthesis.cancel(); // TTS 즉시 중단
+      VoiceEngine.stop();
+      clearTimeout(this._autoTimer);   // 자동 진행 타이머 완전 제거
       if(overlay) overlay.classList.add('show');
       this.toast('⏸ 멈춤');
     } else {
       if(icon) icon.textContent='⏸';
       if(btn)  btn.style.background='rgba(0,0,0,0.5)';
-      VoiceEngine.resume();
-      this._autoTimer=setTimeout(()=>this.advance(),10000);
-      // 오버레이 숨기기
+      clearTimeout(this._autoTimer);   // 혹시 남은 타이머 제거 후 새로 시작
+      this._autoTimer=setTimeout(()=>this.advance(), 12000);
       if(overlay) overlay.classList.remove('show');
       this.toast('▶ 계속');
     }
