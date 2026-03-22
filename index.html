@@ -906,6 +906,17 @@ const VoiceEngine = {
   enabled: true,
   lang: 'ko-KR',
   _interval: null,
+  _voices: [], // 음성 목록 캐시
+
+  // 앱 시작 시 음성 목록 미리 로드
+  preloadVoices(){
+    const load = () => {
+      const vs = window.speechSynthesis.getVoices();
+      if(vs.length){ this._voices = vs; console.log('[VoiceEngine] 음성 캐시 완료:', vs.length+'개'); }
+    };
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+  },
 
   setEnabled(on){
     this.enabled=on;
@@ -923,6 +934,8 @@ const VoiceEngine = {
     console.log('[VoiceEngine] 언어 변경:', this.lang);
   },
 
+  _isSpeaking: false, // TTS 재생 중 플래그
+
   play(text){
     if(!this.enabled||!text) return;
     const refined=text
@@ -934,29 +947,40 @@ const VoiceEngine = {
     const u=new SpeechSynthesisUtterance(refined);
     u.lang=this.lang; u.rate=0.92; u.pitch=0.75; u.volume=1;
     const trySpeak=()=>{
-      const vs=window.speechSynthesis.getVoices();
-      if(!vs.length){setTimeout(trySpeak,200);return;}
-      const v=vs.find(v=>v.lang===this.lang)||vs.find(v=>v.lang&&v.lang.startsWith(this.lang.split('-')[0]));
+      // 캐시된 음성 즉시 사용 (딜레이 제거)
+      const vs = this._voices.length ? this._voices : window.speechSynthesis.getVoices();
+      if(!vs.length){ setTimeout(trySpeak,100); return; }
+      // 남성 음성 우선 선택, 없으면 해당 언어 첫 번째
+      const langCode = this.lang.split('-')[0];
+      const v = vs.find(v=>v.lang===this.lang && v.name.match(/male|man|남성|남자/i))
+             || vs.find(v=>v.lang===this.lang)
+             || vs.find(v=>v.lang&&v.lang.startsWith(langCode));
       if(v) u.voice=v;
       u.onstart=()=>{
-        // TTS 시작 → 음성인식 일시 중단 (띠링 소리 방지)
-        try{ VoiceRecognitionEngine?._recog?.abort(); }catch(x){}
+        // TTS 시작 → 플래그 ON + 음성인식 완전 중단
+        VoiceEngine._isSpeaking = true;
+        if(VoiceRecognitionEngine._recog){
+          VoiceRecognitionEngine._recog._dead = true; // onend 재시작 차단
+          try{ VoiceRecognitionEngine._recog.abort(); }catch(x){}
+        }
         document.getElementById('character')?.classList.add('speaking');
         document.getElementById('pip')?.classList.add('scanning');
         const sc=document.getElementById('vision-scanner');
         if(sc) sc.style.display='block';
       };
       u.onend=()=>{
-        // TTS 종료 → 음성인식 재시작 (1초 딜레이로 에코 방지)
+        // TTS 종료 → 플래그 OFF + 음성인식 새로 init (재시작 아닌 새 객체)
+        VoiceEngine._isSpeaking = false;
         document.getElementById('character')?.classList.remove('speaking');
         document.getElementById('pip')?.classList.remove('scanning');
         const sc=document.getElementById('vision-scanner');
         if(sc) sc.style.display='none';
+        // 0.8초 후 음성인식 새로 시작 (에코 방지 + 빠른 재개)
         setTimeout(()=>{
-          if(VoiceRecognitionEngine?._recog && !VoiceRecognitionEngine._recog._dead){
-            try{ VoiceRecognitionEngine._recog.start(); }catch(x){}
+          if(!VoiceEngine._isSpeaking){
+            VoiceRecognitionEngine.init(VoiceRecognitionEngine._lang);
           }
-        }, 1000);
+        }, 800);
       };
       window.speechSynthesis.speak(u);
     };
@@ -1406,20 +1430,32 @@ const VoiceRecognitionEngine = {
     if(!SR){ console.warn('[VoiceRecognitionEngine] 미지원 브라우저'); return; }
     if(this._recog){ this._recog._dead=true; try{this._recog.abort();}catch(e){} }
     const r=new SR();
-    r.lang=lang; r.continuous=true; r.interimResults=false; r._dead=false;
+    r.lang=lang; r.continuous=true; r.interimResults=true; r._dead=false;
+    r._lastFinal = ''; // 중복 처리 방지
     r.onresult=e=>{
-      const said=e.results[e.results.length-1][0].transcript.toLowerCase().trim();
-      IntelMonitor?.setLED('voice', true);
-      // 인식된 텍스트 화면에 크게 표시
-      const vi = document.getElementById('voice-listening');
+      const result = e.results[e.results.length-1];
+      const said = result[0].transcript.toLowerCase().trim();
+      const isFinal = result.isFinal;
+
+      // 중간 결과 — 화면에 표시만 (처리 안 함)
       const vh = document.getElementById('voice-heard');
-      if(vi){ vi.style.display='block'; }
-      if(vh){ vh.textContent = '"' + said + '"'; }
+      if(vh) vh.textContent = said ? '"' + said + '"' : '';
+      const vi = document.getElementById('voice-listening');
+      if(vi && AppController?.appState==='ACTIVE' && !AppController?.STATE?.paused){
+        vi.style.display='block';
+      }
+      IntelMonitor?.setLED('voice', true);
+
+      // 최종 결과만 처리
+      if(!isFinal) return;
+      if(said === r._lastFinal) return; // 중복 방지
+      r._lastFinal = said;
+
       setTimeout(()=>{
         IntelMonitor?.setLED('voice', false);
         if(vi) vi.style.display='none';
         if(vh) vh.textContent='';
-      }, 2500);
+      }, 1500);
       this._process(said);
     };
     r.onstart=()=>{
@@ -1449,7 +1485,12 @@ const VoiceRecognitionEngine = {
         AppController?.toast('🎤 '+msg);
       }
     };
-    r.onend=()=>{ if(!r._dead) setTimeout(()=>{ try{ if(!r._dead) r.start(); }catch(x){} }, 800); };
+    r.onend=()=>{
+      // TTS 재생 중이거나 dead 상태면 재시작 안 함 (띵동 소리 방지)
+      if(r._dead) return;
+      if(VoiceEngine._isSpeaking) return;
+      setTimeout(()=>{ try{ if(!r._dead && !VoiceEngine._isSpeaking) r.start(); }catch(x){} }, 800);
+    };
     this._recog=r;
     setTimeout(()=>{try{r.start();}catch(x){}},200);
   },
@@ -2247,6 +2288,7 @@ const AppController = {
     document.getElementById('bg-on').style.backgroundImage=`url('${IMAGES.BGON}')`;
 
     // 엔진 초기화
+    VoiceEngine.preloadVoices(); // 음성 목록 미리 캐시 (TTS 딜레이 방지)
     VisualEngine.updateRatio();
     CameraEngine.init();
     GestureEngine.init();
