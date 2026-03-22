@@ -418,6 +418,14 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <button data-action="close-ad" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:10px;color:#fff;font-size:12px;font-weight:500;padding:8px 4px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;touch-action:manipulation">다시 비행</button>
     </div>
   </div>
+  <!-- 마이크 입력 중 표시 — 크게 -->
+  <div id="voice-listening" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;background:rgba(0,0,0,0.82);border:2px solid rgba(255,80,80,0.8);border-radius:24px;padding:28px 40px;text-align:center;pointer-events:none">
+    <div style="font-size:48px;margin-bottom:10px">🎤</div>
+    <div style="font-size:20px;font-weight:700;color:#ff4444;letter-spacing:1px">듣고 있어요</div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.6);margin-top:6px">말씀해 주세요</div>
+    <div id="voice-heard" style="font-size:14px;color:#FFD700;margin-top:10px;min-height:20px"></div>
+  </div>
+
   <div id="dialog">
     <div id="dialog-inner">
       <span id="dbadge">${APP_CONFIG?.BRAND_NAME||'미스터 콕'}</span>
@@ -1388,11 +1396,34 @@ const VoiceRecognitionEngine = {
     r.lang=lang; r.continuous=true; r.interimResults=false; r._dead=false;
     r.onresult=e=>{
       const said=e.results[e.results.length-1][0].transcript.toLowerCase().trim();
-      IntelMonitor?.setLED('voice', true); // 음성 인식 중 LED ON
-      setTimeout(()=>IntelMonitor?.setLED('voice', false), 1500);
+      IntelMonitor?.setLED('voice', true);
+      // 인식된 텍스트 화면에 크게 표시
+      const vi = document.getElementById('voice-listening');
+      const vh = document.getElementById('voice-heard');
+      if(vi){ vi.style.display='block'; }
+      if(vh){ vh.textContent = '"' + said + '"'; }
+      setTimeout(()=>{
+        IntelMonitor?.setLED('voice', false);
+        if(vi) vi.style.display='none';
+        if(vh) vh.textContent='';
+      }, 2500);
       this._process(said);
     };
+    r.onstart=()=>{
+      // 마이크 활성 — 듣고 있어요 표시
+      const vi = document.getElementById('voice-listening');
+      if(vi) vi.style.display='block';
+    };
+    r.onspeechend=()=>{
+      // 발화 종료 — 잠시 후 숨김 (result 처리 시간 확보)
+      setTimeout(()=>{
+        const vi = document.getElementById('voice-listening');
+        if(vi) vi.style.display='none';
+      }, 2000);
+    };
     r.onerror=(e)=>{
+      const vi = document.getElementById('voice-listening');
+      if(vi) vi.style.display='none';
       if(e.error==='aborted') return; // aborted는 재시작 과정의 정상 현상 — 무시
       const errMap={
         'not-allowed':'마이크 권한 거부됨 — 브라우저 설정에서 허용해주세요',
@@ -1585,6 +1616,8 @@ const AIEngine = {
       return fb.default;
     }catch(e){
       console.warn('[AIEngine] API 오류:', e.message);
+      // 오류 원인을 화면에 표시 (디버그용)
+      AppController?.toast('⚠️ AI 오류: ' + (e.message||'연결 실패'));
       return fb.default;
     }
   },
