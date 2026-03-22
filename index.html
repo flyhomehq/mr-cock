@@ -1574,10 +1574,12 @@ const AIEngine = {
 
   // v1.1: 즉석 AI 답변
   // API 키 — 아래에 발급받은 키를 넣으세요
-  _apiKey: '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',
+  _apiKey: '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',
 
   async ask(question, context={}){
     const lang = AppController?.STATE?.lang||'ko';
+    // 키 앞뒤 공백 자동 제거
+    this._apiKey = (this._apiKey||'').trim();
     const fallback={
       ko:{default:'잠시 후 답변드리겠습니다.',host:'좋은 질문입니다. 대표님께 직접 여쭤보시기 바랍니다.'},
       en:{default:'Please wait a moment.',host:'Great question. Please ask the representative directly.'},
@@ -1620,7 +1622,7 @@ const AIEngine = {
       if(!r.ok){
         // HTTP 오류 코드 표시 (401=키오류, 429=한도초과, 500=서버오류)
         const errMsg = d?.error?.message || `HTTP ${r.status}`;
-        AppController?.toast('⚠️ AI 오류: ' + errMsg);
+        AppController?.toast('⚠️ AI 오류: ' + errMsg, 6000);
         console.warn('[AIEngine] API HTTP 오류:', r.status, d);
         return fb.default;
       }
@@ -1628,7 +1630,7 @@ const AIEngine = {
       return fb.default;
     }catch(e){
       console.warn('[AIEngine] API 오류:', e.message);
-      AppController?.toast('⚠️ AI 오류: ' + (e.message||'연결 실패'));
+      AppController?.toast('⚠️ AI 오류: ' + (e.message||'연결 실패'), 6000);
       return fb.default;
     }
   },
@@ -2736,10 +2738,11 @@ const AppController = {
     }
   },
 
-  toast(msg){
+  toast(msg, duration=2000){
     const t=document.getElementById('toast');
     t.textContent=msg; t.classList.add('show');
-    setTimeout(()=>t.classList.remove('show'),2000);
+    clearTimeout(this._toastTimer);
+    this._toastTimer=setTimeout(()=>t.classList.remove('show'), duration);
   },
 };
 
