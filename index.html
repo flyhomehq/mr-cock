@@ -46,11 +46,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
   0%{transform:translateX(-50%) scaleY(1) rotate(-0.5deg)}
   100%{transform:translateX(-50%) scaleY(1.02) rotate(0.5deg)}
 }
-/* 스캔라인 — pip 카메라 위에 표시 */
-#vision-scanner{position:absolute;top:0;left:0;width:100%;height:3px;background:rgba(0,255,204,0.7);box-shadow:0 0 12px #00ffcc;animation:scanMove 2.5s linear infinite;display:none;z-index:55;pointer-events:none}
-@keyframes scanMove{0%{top:0}100%{top:100%}}
-/* 스캔라인 활성 시 pip 테두리 강조 */
-#pip.scanning{border-color:rgba(0,255,204,0.8)}
+/* 스캔라인 제거됨 — 필요 시 재추가 가능 */
 #character.show{opacity:1}
 #character.right{left:68%}
 #character.center{left:50%}
@@ -65,7 +61,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .phase-tab.active{background:rgba(245,166,35,0.25);border-color:rgba(245,166,35,0.7);color:#FFD060}
 
 /* ── PIP 카메라 (우측 하단, 자동 페이드) ── */
-#pip{position:fixed;bottom:10%;right:0;width:50vw;height:37.5vh;min-width:120px;min-height:80px;max-width:90vw;max-height:70vh;border-radius:12px 0 0 12px;border:2px solid rgba(255,220,100,0.5);border-right:none;background:#111;overflow:hidden;z-index:45;opacity:1;display:none}
+#pip{position:fixed;bottom:10%;right:0;width:28vw;height:21vh;min-width:160px;min-height:110px;max-width:95vw;max-height:80vh;border-radius:12px 0 0 12px;border:2px solid rgba(255,220,100,0.5);border-right:none;background:#111;overflow:hidden;z-index:45;opacity:1;display:none;transition:width 0.4s ease,height 0.4s ease}
+/* 핍 크기 단계 */
+#pip.pip-sm{width:28vw;height:21vh}
+#pip.pip-md{width:45vw;height:34vh}
+#pip.pip-lg{width:75vw;height:56vh}
 #pip video{width:100%;height:100%;object-fit:cover}
 #pip-dot{position:absolute;top:5px;left:6px;width:6px;height:6px;border-radius:50%;background:#22C55E;animation:blink 1.5s infinite}
 /* 설명 오버레이 — AI 교관 설명 시 표시 */
@@ -78,7 +78,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .led.on-voice{background:#ff3300;box-shadow:0 0 8px #ff3300}
 .led.on-gesture{background:#00ff88;box-shadow:0 0 8px #00ff88}
 #pip-lbl{position:absolute;top:4px;right:8px;font-size:9px;color:rgba(255,255,255,0.5)}
-#pip-toggle{position:absolute;bottom:5px;right:6px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:rgba(255,255,255,0.7);font-size:9px;padding:2px 6px;cursor:pointer;touch-action:manipulation}
+#pip-toggle{position:absolute;bottom:5px;right:6px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,220,100,0.5);border-radius:8px;color:#FFD700;font-size:11px;font-weight:700;padding:3px 8px;cursor:pointer;touch-action:manipulation;user-select:none}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
 
 /* ── 네비게이션 버튼 ── */
@@ -411,7 +411,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
     <div id="pip-dot"></div>
     <div id="pip-lbl">CAM</div>
     <!-- 스캔라인 — Vision AI 시연 시 활성화 -->
-    <div id="vision-scanner"></div>
+    <!-- vision-scanner 제거됨 -->
     <!-- 설명 오버레이 — AI 교관 설명 시 카메라 위에 텍스트 표시 -->
     <div id="instruction-overlay">
       <div id="instruction-text"></div>
@@ -421,7 +421,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <div class="led" id="led-voice" title="음성 인식"></div>
       <div class="led" id="led-gesture" title="제스처 인식"></div>
     </div>
-    <div id="pip-toggle" data-action="toggle-cam">고정</div>
+    <div id="pip-toggle" data-action="toggle-cam">⤢</div>
   </div>
   <!-- 카메라 전체화면 전환 버튼 -->
   <div id="pip-fullscreen-btn" data-action="toggle-pip-fullscreen" style="display:block">⛶ 전체화면</div>
@@ -1064,17 +1064,11 @@ const VoiceEngine = {
           try{ VoiceRecognitionEngine._recog.abort(); }catch(x){}
         }
         document.getElementById('character')?.classList.add('speaking');
-        document.getElementById('pip')?.classList.add('scanning');
-        const sc=document.getElementById('vision-scanner');
-        if(sc) sc.style.display='block';
       };
       u.onend=()=>{
         // TTS 종료 → 플래그 OFF + 음성인식 새로 init (재시작 아닌 새 객체)
         VoiceEngine._isSpeaking = false;
         document.getElementById('character')?.classList.remove('speaking');
-        document.getElementById('pip')?.classList.remove('scanning');
-        const sc=document.getElementById('vision-scanner');
-        if(sc) sc.style.display='none';
         // TTS 끝난 후 마이크 자동 재시작 없음 — 버튼으로만 인식
       };
       window.speechSynthesis.speak(u);
@@ -1299,6 +1293,24 @@ const CameraEngine = {
       btn.style.background='rgba(0,0,0,0.5)';
       this.startCycle();
     }
+  },
+
+  // ── pip 크기 제어 ──
+  // sm: 소형(기본), md: 중형(설명시), lg: 대형(광고/심커넥트)
+  _pipSize: 'sm',
+  setSize(size){
+    const pip = document.getElementById('pip');
+    if(!pip) return;
+    pip.classList.remove('pip-sm','pip-md','pip-lg');
+    pip.classList.add('pip-'+size);
+    this._pipSize = size;
+    // 토글 버튼 텍스트 업데이트
+    const btn = document.getElementById('pip-toggle');
+    if(btn) btn.textContent = size==='sm'?'⤢':size==='md'?'⤡':'✕';
+  },
+  cycleSize(){
+    const next = this._pipSize==='sm'?'md':this._pipSize==='md'?'lg':'sm';
+    this.setSize(next);
   },
 
   // ── v1.1 연결 준비 (그릇) ──
@@ -2576,7 +2588,7 @@ const AppController = {
       case 'voice-on':          window.speechSynthesis.cancel(); this.toggleVoice(true);  break;
       case 'voice-off':         this.toggleVoice(false); break;
       // 카메라
-      case 'toggle-cam':        CameraEngine.toggleFixed(); break;
+      case 'toggle-cam':        CameraEngine.cycleSize(); break;
       // 네비
       case 'toggle-pause':      this.togglePause(); break;
       case 'go-back':           this.goBack();      break;
@@ -2671,6 +2683,7 @@ const AppController = {
     document.getElementById('btn-pause').style.display='flex';
     document.getElementById('phase-tabs').style.display='flex';
     document.getElementById('pip').style.display='block';
+    CameraEngine.setSize('sm'); // 소형으로 시작
     document.getElementById('mic-btn-wrap').style.display = this.STATE.micEnabled ? 'block' : 'none';
     this._updateScenes(); this._updateTabs();
     document.getElementById('character').classList.add('show');
