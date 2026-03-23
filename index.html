@@ -207,7 +207,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
   color:rgba(255,255,255,0.5);
 }
 /* 언어 선택 화면 */
-#lang-select{position:fixed;inset:0;z-index:96;background:rgba(4,8,18,0.98);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px}
+#lang-select{position:fixed;inset:0;z-index:96;background:rgba(4,8,18,0.98);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background-size:cover;background-position:center;transition:background-image 0.8s}
+#lang-select-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.62);z-index:0}
+#lang-select>*{position:relative;z-index:1}
 #lang-select.hidden{display:none}
 .lang-select-btn{background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px 16px;cursor:pointer;text-align:center;touch-action:manipulation;transition:all 0.2s;color:#fff}
 .lang-select-btn:hover,.lang-select-btn:active{background:rgba(245,166,35,0.15);border-color:rgba(245,166,35,0.6)}
@@ -291,15 +293,17 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
 
   <!-- ════ 언어 선택 (최초 진입 화면) ════ -->
   <div id="lang-select">
-    <div style="text-align:center;margin-bottom:32px">
-      <div style="font-size:32px;margin-bottom:8px">✈</div>
-      <div style="font-size:22px;font-weight:700;color:#F5A623;margin-bottom:6px">CockpitOS</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.5)">AI Flight Instructor · AI 비행 교관</div>
+    <!-- 배경 어두운 오버레이 -->
+    <div id="lang-select-overlay"></div>
+    <!-- 로고 -->
+    <div style="text-align:center;margin-bottom:40px">
+      <div style="font-size:48px;margin-bottom:10px;filter:drop-shadow(0 0 20px rgba(245,166,35,0.6))">✈</div>
+      <div style="font-size:28px;font-weight:900;color:#FFD700;margin-bottom:8px;letter-spacing:2px;text-shadow:0 2px 20px rgba(245,166,35,0.5)">CockpitOS</div>
+      <div style="font-size:14px;color:rgba(255,255,255,0.7);letter-spacing:1px">AI Flight Instructor</div>
+      <div style="width:40px;height:2px;background:#F5A623;margin:12px auto 0;border-radius:2px"></div>
     </div>
-    <!-- 언어 선택이 첫 화면 — 뒤로 갈 곳 없음 -->
-    <!-- 나중에 앱이 확장되면 이 화면 앞에 온보딩 추가 가능 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:340px">
-      <!-- 언어 선택 후 돌아오는 버튼 (모드선택 화면에서 표시) -->
+    <!-- 언어 선택 버튼 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:360px">
       <div class="lang-select-btn" data-action="select-lang" data-lang="ko">
         <div style="font-size:28px;margin-bottom:6px">🇰🇷</div>
         <div style="font-size:15px;font-weight:700">한국어</div>
@@ -321,6 +325,8 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
         <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:3px">중국어</div>
       </div>
     </div>
+    <!-- 하단 크레딧 -->
+    <div style="margin-top:32px;font-size:10px;color:rgba(255,255,255,0.25);letter-spacing:1px">POWERED BY ANTHROPIC CLAUDE</div>
   </div>
 
   <div id="mode-select" class="hidden">
@@ -2399,6 +2405,7 @@ const AppController = {
 
     // 엔진 초기화
     VoiceEngine.preloadVoices(); // 음성 목록 미리 캐시 (TTS 딜레이 방지)
+    this._loadSplashBg();         // 첫 화면 배경 로드
     VisualEngine.updateRatio();
     CameraEngine.init();
     GestureEngine.init();
@@ -2997,6 +3004,38 @@ const AppController = {
       // 사용자가 취소한 경우 무시
       if(err.name!=='AbortError') this.toast('공유에 실패했습니다.');
     }
+  },
+
+  // 첫 화면 배경 — Unsplash 비행 사진 랜덤 로드
+  // 실패 시 내장 조종석 사진으로 폴백
+  _loadSplashBg(){
+    const UNSPLASH_KEY = 'tPqAWtqAyez0Iucs2z4R6zAxgubQnCHkGE85sx7O5hA';
+    const queries = ['cockpit airplane','cessna flight','aircraft dashboard','pilot cockpit','flight simulator cockpit'];
+    const q = queries[Math.floor(Math.random()*queries.length)];
+    const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(q)}&orientation=landscape&client_id=${UNSPLASH_KEY}`;
+    const el = document.getElementById('lang-select');
+    if(!el) return;
+
+    fetch(url)
+      .then(r=>r.ok ? r.json() : Promise.reject(r.status))
+      .then(data=>{
+        const imgUrl = data?.urls?.regular;
+        if(!imgUrl) return;
+        // 이미지 미리 로드 후 배경 적용 (깜빡임 방지)
+        const img = new Image();
+        img.onload = ()=>{
+          el.style.backgroundImage = `url('${imgUrl}')`;
+          console.log('[Splash] Unsplash 배경 로드 완료');
+        };
+        img.src = imgUrl;
+      })
+      .catch(()=>{
+        // 인터넷 없거나 오류 시 — 내장 조종석 이미지로 폴백
+        if(IMAGES.BGOFF){
+          el.style.backgroundImage = `url('${IMAGES.BGOFF}')`;
+        }
+        console.log('[Splash] 폴백 배경 사용');
+      });
   },
 
   toast(msg, duration=2000){
