@@ -812,6 +812,78 @@ const cockpitData = {
 // 심커넥터 연결 후 각 설명 단계에 pip 필드만 추가하면
 // 자동으로 해당 영상/데이터가 pip에 표시됩니다.
 // ══════════════════════════════════════════════
+/* ════════════════════════════════════
+   SimpleIntentResolver — 즉시 답변 엔진
+   키워드 매칭 성공 시 API 없이 0.1초 즉시 답변
+   매칭 실패 시 → AIEngine.ask() 호출
+   ════════════════════════════════════ */
+const FLIGHT_GUIDE = [
+  // ── 계기 번호 직접 답변 ──
+  {keys:['1번','속도계','airspeed','대기속도'], ans:'1번은 속도계입니다. 이륙 시 55노트, 상승 시 70~80노트를 유지하세요.'},
+  {keys:['2번','자세계','attitude','인공수평선'], ans:'2번은 자세계입니다. 갈색은 땅, 파란색은 하늘입니다. 수평 비행의 기준입니다.'},
+  {keys:['3번','고도계','altimeter','altitude'], ans:'3번은 고도계입니다. 긴 바늘은 100단위, 짧은 바늘은 1000단위 피트를 나타냅니다.'},
+  {keys:['4번','선회계','턴','turn'], ans:'4번은 선회계입니다. 비행기가 옆으로 미끄러지지 않고 균형 있게 돌고 있는지 알려줍니다.'},
+  {keys:['5번','방향계','헤딩','heading','compass'], ans:'5번은 방향 지시계입니다. 나침반과 일치하는지 주기적으로 확인해야 합니다.'},
+  {keys:['6번','승강계','vsi','수직속도'], ans:'6번은 승강계입니다. 현재 얼마나 빨리 올라가거나 내려가는지 보여줍니다.'},
+  // ── 비행 상황별 답변 ──
+  {keys:['고도','높이'], ans:'고도계를 확인하세요. 설정된 고도를 유지하는 것이 중요합니다.'},
+  {keys:['속도','노트'], ans:'속도계의 흰색과 초록색 호를 확인하세요. 순항 시 100~120노트가 적정입니다.'},
+  {keys:['방향','헤딩'], ans:'방향 지시계로 지정된 방위로 비행 중인지 확인하세요.'},
+  {keys:['기울기','수평','자세'], ans:'자세계를 보고 날개가 수평인지 확인하세요.'},
+  {keys:['상승율','수직속도'], ans:'승강계를 확인하세요. 너무 가파른 상승은 실속 위험이 있습니다.'},
+  {keys:['rpm','엔진회전'], ans:'엔진 출력을 확인하세요. 순항 시 적정 RPM을 유지해야 합니다.'},
+  {keys:['시동','엔진걸기','스타트'], ans:'믹스처 RICH, 마스터 스위치 ON 확인 후 키를 START로 돌리세요.'},
+  {keys:['이륙','당겨','로테이트'], ans:'속도가 55노트에 도달하면 조종간을 부드럽게 몸쪽으로 당기세요.'},
+  {keys:['플랩','flap'], ans:'이륙 시 10도, 착륙 시 속도에 맞춰 단계별로 내리세요.'},
+  {keys:['택싱','지상이동'], ans:'지상에서는 조종간이 아닌 방향 페달로 방향을 조절합니다.'},
+  {keys:['착륙','랜딩','내리기'], ans:'활주로 정렬 확인 후 속도를 줄이며 부드럽게 접근하세요.'},
+  {keys:['트림','trim'], ans:'조종간 압력을 없애려면 트림 휠을 조금씩 조절하세요.'},
+  {keys:['주차','파킹','끝내기'], ans:'믹스처를 끝까지 당겨 엔진을 끄고 마스터 스위치를 차단하세요.'},
+  {keys:['연료','기름','fuel'], ans:'연료 잔량을 확인하세요. 양쪽 탱크가 균형 있게 소모되고 있나요?'},
+  {keys:['날씨','구름','바람','weather'], ans:'현재 바람 방향을 고려해 활주로 진입 방향을 결정하세요.'},
+  {keys:['교신','라디오','타워'], ans:'관제탑에 현재 위치와 의도를 명확하게 전달하세요.'},
+  {keys:['경고음','삐','알람'], ans:'실속 경고일 수 있습니다! 즉시 기수를 낮추고 출력을 높이세요.'},
+  {keys:['빨간불','경고등','전압'], ans:'전기 시스템 오류일 수 있습니다. 알터네이터 상태를 확인하세요.'},
+  {keys:['엔진꺼','멈춤','프로펠러'], ans:'비상 착륙 절차를 수행하세요. 최적 활공 속도를 유지하세요.'},
+  {keys:['쏠림','왼쪽으로','돌아가'], ans:'P-factor 현상입니다. 오른쪽 방향 페달을 밟으세요.'},
+  {keys:['흔들림','난기류','터뷸런스'], ans:'기류가 불안정합니다. 수평 유지를 위해 조종간을 짧게 조작하세요.'},
+  {keys:['주파수','나브','nav'], ans:'항법 시설 주파수가 올바르게 입력되었는지 확인하세요.'},
+  {keys:['오토파일럿','자동비행'], ans:'오토파일럿 설정이 활성화되었는지 모드를 확인하세요.'},
+  {keys:['고어라운드','복행','중단'], ans:'착륙이 불안정하면 망설이지 말고 복행(Go-around)하세요.'},
+];
+
+const SimpleIntentResolver = {
+  // 음성 입력에서 즉시 답변 시도
+  // 반환값: 답변 문자열 or null (매칭 실패)
+  resolve(said){
+    if(!said) return null;
+    const s = said.toLowerCase().trim();
+
+    // ① 3글자 이하 짧은 입력 — 번호 우선 즉시 매칭
+    if(s.length <= 4){
+      const numMatch = s.match(/(\d+)/);
+      if(numMatch){
+        const num = parseInt(numMatch[1]);
+        if(num >= 1 && num <= 12){
+          AppController.explainInstrument(num);
+          return '__handled__'; // explainInstrument가 직접 처리
+        }
+      }
+    }
+
+    // ② 키워드 매칭 — 유사도 포함 (부분 일치)
+    for(const item of FLIGHT_GUIDE){
+      for(const key of item.keys){
+        // 완전 포함 or 앞 2글자 유사도 (고도/고두 등 처리)
+        if(s.includes(key) || (key.length >= 2 && s.includes(key.slice(0,2)))){
+          return item.ans;
+        }
+      }
+    }
+    return null; // 매칭 실패 → AIEngine 호출
+  },
+};
+
 const SCENES = {
   ko: {
     intro: [
@@ -1547,7 +1619,17 @@ const VoiceRecognitionEngine = {
       ? cleanSaid.replace(this._WAKEWORD,'').trim()
       : cleanSaid;
 
-    // qaMode ON: 모든 발화를 AI에게 전달
+    // ① SimpleIntentResolver — 로컬 즉시 매칭 (API 호출 없음)
+    const localAns = SimpleIntentResolver.resolve(cleanSaid||said);
+    if(localAns === '__handled__') return; // explainInstrument가 직접 처리
+    if(localAns){
+      window.speechSynthesis.cancel();
+      VoiceEngine.stop();
+      DialogEngine.show(localAns);
+      return;
+    }
+
+    // ② qaMode ON: 로컬 매칭 실패 → AI에게 전달
     if(AppController?.STATE?.qaMode){
       window.speechSynthesis.cancel(); // 기존 TTS 즉시 중단
       VoiceEngine.stop();
