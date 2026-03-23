@@ -207,9 +207,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
   color:rgba(255,255,255,0.5);
 }
 /* 언어 선택 화면 */
-#lang-select{position:fixed;inset:0;z-index:96;background:rgba(4,8,18,0.98);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background-size:cover;background-position:center;transition:background-image 0.8s}
-#lang-select-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.62);z-index:0}
+#lang-select{position:fixed;inset:0;z-index:96;background:#050a14;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background-size:cover;background-position:center;transition:background-image 0.8s}
+#lang-select-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:0}
 #lang-select>*{position:relative;z-index:1}
+.lang-select-btn{background:rgba(255,255,255,0.15)!important;border:2px solid rgba(255,255,255,0.6)!important;backdrop-filter:blur(8px)}
+.lang-select-btn:hover,.lang-select-btn:active{background:rgba(245,166,35,0.35)!important;border-color:#FFD700!important}
 #lang-select.hidden{display:none}
 .lang-select-btn{background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px 16px;cursor:pointer;text-align:center;touch-action:manipulation;transition:all 0.2s;color:#fff}
 .lang-select-btn:hover,.lang-select-btn:active{background:rgba(245,166,35,0.15);border-color:rgba(245,166,35,0.6)}
@@ -2526,6 +2528,7 @@ const AppController = {
         break;
       // 언어 선택 (최초 화면)
       case 'select-lang':
+        this._stopSplashBg(); // 슬라이드쇼 중단
         this.pickLang(dataset.lang||'ko');
         document.getElementById('lang-select').classList.add('hidden');
         document.getElementById('mode-select').classList.remove('hidden');
@@ -3006,36 +3009,52 @@ const AppController = {
     }
   },
 
-  // 첫 화면 배경 — Unsplash 비행 사진 랜덤 로드
-  // 실패 시 내장 조종석 사진으로 폴백
+  // 첫 화면 배경 슬라이드쇼
+  // 1장은 내장 이미지 (인터넷 없어도 무조건 표시)
+  // 나머지 4장은 Unsplash URL (인터넷 있을 때)
+  _splashTimer: null,
+  _splashIndex: 0,
+
   _loadSplashBg(){
-    const UNSPLASH_KEY = 'tPqAWtqAyez0Iucs2z4R6zAxgubQnCHkGE85sx7O5hA';
-    const queries = ['cockpit airplane','cessna flight','aircraft dashboard','pilot cockpit','flight simulator cockpit'];
-    const q = queries[Math.floor(Math.random()*queries.length)];
-    const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(q)}&orientation=landscape&client_id=${UNSPLASH_KEY}`;
     const el = document.getElementById('lang-select');
     if(!el) return;
 
-    fetch(url)
-      .then(r=>r.ok ? r.json() : Promise.reject(r.status))
-      .then(data=>{
-        const imgUrl = data?.urls?.regular;
-        if(!imgUrl) return;
-        // 이미지 미리 로드 후 배경 적용 (깜빡임 방지)
-        const img = new Image();
-        img.onload = ()=>{
-          el.style.backgroundImage = `url('${imgUrl}')`;
-          console.log('[Splash] Unsplash 배경 로드 완료');
-        };
-        img.src = imgUrl;
-      })
-      .catch(()=>{
-        // 인터넷 없거나 오류 시 — 내장 조종석 이미지로 폴백
-        if(IMAGES.BGOFF){
-          el.style.backgroundImage = `url('${IMAGES.BGOFF}')`;
-        }
-        console.log('[Splash] 폴백 배경 사용');
-      });
+    // 슬라이드 목록 — 첫 번째가 내장 폴백
+    const slides = [
+      { src: IMAGES.BGOFF, type: 'inline' },                                          // 1번: 내장 조종석 (항상 작동)
+      { src: 'https://images.unsplash.com/photo-69dnQDE5ZsU?w=1400&q=85', type: 'url' }, // 2번: 흑백 계기판
+      { src: 'https://images.unsplash.com/photo-aarwTmK8vT4?w=1400&q=85', type: 'url' }, // 3번: 조종사 체크리스트
+      { src: 'https://images.unsplash.com/photo-3PzTg6QCc5A?w=1400&q=85', type: 'url' }, // 4번: 유니폼 조종사
+      { src: 'https://images.unsplash.com/photo-DtENd4YcZaA?w=1400&q=85', type: 'url' }, // 5번: 조종석 두 명
+    ];
+
+    // 슬라이드 적용 함수
+    const applySlide = (index)=>{
+      const slide = slides[index % slides.length];
+      const img = new Image();
+      img.onload = ()=>{
+        el.style.backgroundImage = `url('${slide.src}')`;
+      };
+      img.onerror = ()=>{
+        // URL 실패 시 내장 이미지로 폴백
+        el.style.backgroundImage = `url('${IMAGES.BGOFF}')`;
+      };
+      img.src = slide.src;
+    };
+
+    // 첫 번째 슬라이드 즉시 표시 (내장 이미지)
+    applySlide(0);
+
+    // 5초마다 다음 슬라이드로 전환
+    this._splashTimer = setInterval(()=>{
+      this._splashIndex = (this._splashIndex + 1) % slides.length;
+      applySlide(this._splashIndex);
+    }, 5000);
+  },
+
+  _stopSplashBg(){
+    clearInterval(this._splashTimer);
+    this._splashTimer = null;
   },
 
   toast(msg, duration=2000){
