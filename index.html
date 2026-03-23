@@ -218,8 +218,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 /* 모드 선택 */
 #mode-select{position:fixed;inset:0;z-index:97;background:rgba(0,0,0,0);display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px;background-size:cover;background-position:center}
 #mode-select.show{display:flex}
-/* 모드선택 오버레이 — 최소화 */
-#mode-select::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,0.15);z-index:0}
+/* 모드선택 — 오버레이 없음, 배경 사진 그대로 */
 #mode-select>*{position:relative;z-index:1}
 .mode-title{font-size:24px;font-weight:700;color:#F5A623;margin-bottom:6px;text-align:center}
 .mode-sub{font-size:14px;color:rgba(255,255,255,0.55);margin-bottom:28px;text-align:center;line-height:1.6}
@@ -356,8 +355,8 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
     <div style="margin-top:16px;width:100%;max-width:360px">
       <button data-action="start-pitch"
         style="width:100%;background:rgba(245,166,35,0.15);border:2px solid rgba(245,166,35,0.7);border-radius:16px;color:#FFD700;font-size:15px;font-weight:700;padding:14px 20px;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;gap:10px;backdrop-filter:blur(12px)">
-        🚀 <span>MVP 시연 모드</span>
-        <span style="margin-left:auto;font-size:11px;color:rgba(255,215,0,0.6);background:rgba(245,166,35,0.2);border-radius:8px;padding:2px 8px">시연용</span>
+        🚀 <span id="mvp-btn-text">MVP 시연 모드</span>
+        <span id="mvp-btn-tag" style="margin-left:auto;font-size:11px;color:rgba(255,215,0,0.6);background:rgba(245,166,35,0.2);border-radius:8px;padding:2px 8px">시연용</span>
       </button>
     </div>
   </div>
@@ -2760,8 +2759,8 @@ const AppController = {
       btns[1].querySelector('.mode-btn-desc').innerHTML = t.s_desc;
     }
     // MVP 시연 버튼 텍스트 업데이트
-    const mvpBtn = ms.querySelector('[data-action="start-pitch"] span:first-of-type');
-    const mvpTag = ms.querySelector('[data-action="start-pitch"] span:last-of-type');
+    const mvpBtn = document.getElementById('mvp-btn-text');
+    const mvpTag = document.getElementById('mvp-btn-tag');
     if(mvpBtn) mvpBtn.textContent = t.mvp;
     if(mvpTag) mvpTag.textContent = t.mvp_tag;
   },
