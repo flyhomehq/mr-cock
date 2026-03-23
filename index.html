@@ -359,15 +359,18 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <button class="top-btn" data-action="open-settings">⚙ 설정</button>
       <button class="top-btn" data-action="change-mode" style="border-color:rgba(255,215,0,0.4);color:#FFD060">← 모드</button>
     </div>
-    <!-- 우측: 제스처 버튼 3개 (터치/클릭 가능) -->
-    <div style="display:flex;gap:5px;align-items:center">
-      <button class="top-btn" data-action="toggle-pause"
-        style="font-size:18px;padding:4px 10px;min-width:42px" title="멈춤/계속">✌️</button>
-      <button class="top-btn" data-action="ask-question"
-        style="font-size:18px;padding:4px 10px;min-width:42px" title="질문">✋</button>
-      <button class="top-btn" data-action="toggle-pause"
-        style="font-size:18px;padding:4px 10px;min-width:42px" title="멈춤">✊</button>
-    </div>
+    <!-- 우측: 멈춤 버튼 -->
+    <button class="top-btn" data-action="toggle-pause"
+      style="font-size:18px;padding:4px 14px" title="멈춤/계속">⏸</button>
+  </div>
+
+  <!-- 마이크 버튼 — 화면 좌측 중앙 고정, 크게 -->
+  <div id="mic-btn-wrap" style="position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:95;display:none">
+    <button id="mic-listen-btn" data-action="ask-question"
+      style="background:rgba(180,20,20,0.85);border:2px solid rgba(255,80,80,0.8);border-left:none;border-radius:0 16px 16px 0;color:#fff;font-size:28px;padding:18px 14px;cursor:pointer;touch-action:manipulation;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:4px 0 20px rgba(255,50,50,0.3)">
+      🎤
+      <span style="font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.9)">질문</span>
+    </button>
   </div>
 
   <!-- 제스처 상태 표시 (GestureEngine v1.1) -->
@@ -942,14 +945,6 @@ const VoiceEngine = {
     document.getElementById('cur-voice').textContent=on?'켜짐':'꺼짐';
   },
 
-  // 단일 진입점 — 발음 교정 포함
-  // 언어 변경 — TTS 언어 업데이트
-  setLang(l){
-    const langMap={ko:'ko-KR',en:'en-US',ja:'ja-JP',zh:'zh-CN'};
-    this.lang=langMap[l]||'ko-KR';
-    console.log('[VoiceEngine] 언어 변경:', this.lang);
-  },
-
   _isSpeaking: false, // TTS 재생 중 플래그
 
   play(text){
@@ -991,13 +986,7 @@ const VoiceEngine = {
         document.getElementById('pip')?.classList.remove('scanning');
         const sc=document.getElementById('vision-scanner');
         if(sc) sc.style.display='none';
-        // TTS 끝나면 음성인식 재시작
-        setTimeout(()=>{
-          if(!VoiceEngine._isSpeaking){
-            VoiceRecognitionEngine.stop();
-            VoiceRecognitionEngine.init(VoiceRecognitionEngine._lang);
-          }
-        }, 600);
+        // TTS 끝난 후 마이크 자동 재시작 없음 — 버튼으로만 인식
       };
       window.speechSynthesis.speak(u);
     };
@@ -1205,10 +1194,6 @@ const CameraEngine = {
 
   _show(){
     document.getElementById('pip').style.opacity='1';
-  },
-
-  _hide(){
-    // 페이드 아웃 제거 — 항상 표시
   },
 
   toggleFixed(){
@@ -1511,15 +1496,24 @@ const VoiceRecognitionEngine = {
     };
 
     r.onend=()=>{
-      if(r._dead) return;
-      if(VoiceEngine._isSpeaking) return;
-      if(VoiceRecognitionEngine._recog !== r) return;
-      // 조용히 재시작 — 딜레이 없이 즉시
-      try{ r.start(); }catch(x){}
+      // 자동 재시작 없음 — 띵동 소리 완전 차단
+      // 마이크는 ✋ 버튼 누를 때만 작동
     };
 
     this._recog=r;
-    setTimeout(()=>{ try{ r.start(); }catch(x){} }, 150);
+  },
+
+  // 마이크 버튼 눌렀을 때 한 번 인식 시작
+  listenOnce(){
+    if(VoiceEngine._isSpeaking) return;
+    // _recog가 없거나 _dead 상태면 새로 init
+    if(!this._recog || this._recog._dead){
+      this.init(this._lang);
+      // init은 300ms 후 _startNew 호출하므로 약간 대기 후 시작
+      setTimeout(()=>{ if(this._recog && !this._recog._dead) try{ this._recog.start(); }catch(x){} }, 450);
+      return;
+    }
+    try{ this._recog.start(); }catch(x){}
   },
 
   setLang(lang){ this.init(lang); },
@@ -1885,11 +1879,6 @@ const SimConnectBridge = {
   _updateStatus(msg){
     const el=document.getElementById('simconnect-status');
     if(el) el.textContent=msg;
-    // 설정 패널 미니 상태도 업데이트
-    const dot=document.getElementById('sim-dot');
-    const lbl=document.getElementById('sim-status-mini');
-    if(dot) dot.style.background = msg.includes('연결됨')?'#22C55E':msg.includes('Mock')?'#F5A623':'#6b7280';
-    if(lbl) lbl.textContent = msg.includes('연결됨')?'연결됨':msg.includes('Mock')?'Mock':'대기';
   },
 
   testConnection(){
@@ -2285,8 +2274,17 @@ const AppController = {
   // 상태 변경 시 UI 자동 전환
   _onStateChange(state){
     const modeSelect=document.getElementById('mode-select');
-    if(state==='MODE_SELECT') modeSelect?.classList.remove('hidden');
-    else modeSelect?.classList.add('hidden');
+    const micWrap=document.getElementById('mic-btn-wrap');
+    if(state==='MODE_SELECT'){
+      modeSelect?.classList.remove('hidden');
+      if(micWrap) micWrap.style.display='none';
+    } else {
+      modeSelect?.classList.add('hidden');
+      // ACTIVE/PAUSED 상태에서 마이크 버튼 표시
+      if(micWrap && (state==='ACTIVE'||state==='PAUSED')){
+        micWrap.style.display = this.STATE.micEnabled ? 'block' : 'none';
+      }
+    }
   },
 
   STATE: {
@@ -2423,8 +2421,8 @@ const AppController = {
     SimConnectBridge.onButtonPressed(data=>{
       console.log('[SimConnect] 버튼 조작:', data);
     });
-    SimConnectBridge.onLocationChanged(({lat,lon})=>{
-      AdEngine.checkLocation(lat,lon);
+    SimConnectBridge.onLocationChanged(({lat,lon,altitude})=>{
+      AdEngine.triggerByLocation(lat, lon, altitude||0);
     });
   },
 
@@ -2476,11 +2474,16 @@ const AppController = {
       case 'lang-banner-yes':    this.hideLangBanner(); this.pickLang('en'); break;
       // 호스트
       case 'toggle-qa':         this.toggleQAMode();       break;
-      case 'ask-question':
-        DialogEngine.show(this.STATE.lang==='ko'?'질문하세요. 듣고 있습니다.':'Ask your question.', false);
+      case 'ask-question':{
         const vi2=document.getElementById('voice-listening');
-        if(vi2){ vi2.style.display='block'; setTimeout(()=>{ if(vi2) vi2.style.display='none'; },4000); }
+        const vh2=document.getElementById('voice-heard');
+        if(vi2) vi2.style.display='block';
+        if(vh2) vh2.textContent='';
+        DialogEngine.show(this.STATE.lang==='ko'?'질문하세요. 듣고 있습니다.':'Ask your question.', false);
+        VoiceRecognitionEngine.listenOnce();
+        setTimeout(()=>{ if(vi2) vi2.style.display='none'; }, 8000);
         break;
+      }
       case 'save-api-key':{
         const inp = document.getElementById('api-key-input');
         AIEngine.saveKey(inp?.value||'');
@@ -2491,6 +2494,7 @@ const AppController = {
         document.getElementById('mic-on')?.classList.add('picked');
         document.getElementById('mic-off')?.classList.remove('picked');
         document.getElementById('cur-mic').textContent = '켜짐';
+        document.getElementById('mic-btn-wrap').style.display='block';
         VoiceRecognitionEngine.init(this._getLangCode());
         this.toast('🎤 마이크 켜짐');
         break;
@@ -2499,8 +2503,9 @@ const AppController = {
         document.getElementById('mic-on')?.classList.remove('picked');
         document.getElementById('mic-off')?.classList.add('picked');
         document.getElementById('cur-mic').textContent = '꺼짐';
-        VoiceRecognitionEngine.stop();
+        document.getElementById('mic-btn-wrap').style.display='none';
         document.getElementById('voice-listening').style.display='none';
+        VoiceRecognitionEngine.stop();
         this.toast('🎤 마이크 꺼짐');
         break;
       case 'mic-display-on':
@@ -2549,28 +2554,9 @@ const AppController = {
     this._updateScenes(); this._updateTabs();
     document.getElementById('character').classList.add('show');
     this._showStep();
+    // 음성인식 엔진 준비만 — 자동 시작 안 함 (버튼으로만 인식)
     setTimeout(()=>VoiceRecognitionEngine.init(this._getLangCode()),400);
     CameraEngine.startCycle();
-  },
-
-  // 공유 기능 — Web Share API / 클립보드 폴백
-  async shareApp(){
-    const shareData={
-      title:`CockpitOS — ${APP_CONFIG.BRAND_NAME}`,
-      text:'지금 바로 제 조종석에 접속해서 함께 하늘을 날아봐요! ✈️',
-      url: window.location.href,
-    };
-    try{
-      if(navigator.share){
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        this.toast('🔗 조종석 주소가 복사됐습니다!');
-      }
-    } catch(err){
-      this.toast('🔗 '+window.location.href.slice(0,40)+'...');
-      console.warn('[AppController] 공유 실패:', err);
-    }
   },
 
   // QR코드 팝업 — 현재 URL을 QR로 생성 (공유용)
@@ -2807,11 +2793,11 @@ const AppController = {
     this._updateScenes(); this._updateTabs();
     // 모드선택 화면 텍스트도 언어에 맞게 업데이트
     this._updateModeSelect(l);
-    // 기존 음성인식 완전 종료 후 새 언어로 재시작
+    // 기존 음성인식 완전 종료 후 새 언어로 엔진 교체
     VoiceRecognitionEngine.stop();
     setTimeout(()=>{
       VoiceRecognitionEngine.init(this._getLangCode());
-    }, 500);
+    }, 300);
   },
 
   _getLangCode(){ return {ko:'ko-KR',en:'en-US',ja:'ja-JP',zh:'zh-CN'}[this.STATE.lang]||'ko-KR'; },
