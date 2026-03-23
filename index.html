@@ -60,14 +60,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .phase-tab.active{background:rgba(245,166,35,0.25);border-color:rgba(245,166,35,0.7);color:#FFD060}
 
 /* ── PIP 카메라 — 우측 상단 고정 ── */
-#pip{position:fixed;top:52px;right:0;width:34vw;height:28vh;min-width:190px;min-height:140px;max-width:95vw;max-height:80vh;border-radius:12px 0 0 12px;border:2px solid rgba(255,220,100,0.5);border-right:none;background:#111;overflow:hidden;z-index:45;opacity:1;display:none;transition:width 0.4s ease,height 0.4s ease;cursor:pointer}
+#pip{position:fixed;top:52px;right:0!important;width:34vw;height:28vh;min-width:190px;min-height:140px;max-width:95vw;max-height:80vh;border-radius:12px 0 0 12px;border:2px solid rgba(255,220,100,0.5);border-right:none;background:#111;overflow:hidden;z-index:45;opacity:1;display:none;transition:width 0.4s ease,height 0.4s ease;cursor:pointer}
 /* 핍 크기 단계 — 탭으로 순환, 항상 우측 고정 */
-#pip.pip-sm{width:32vw;height:26vh;right:0}
-#pip.pip-md{width:52vw;height:40vh;right:0}
-#pip.pip-lg{width:85vw;height:65vh;right:0}
+#pip.pip-sm{width:34vw;height:28vh;right:0!important}
+#pip.pip-md{width:55vw;height:42vh;right:0!important}
+#pip.pip-lg{width:88vw;height:66vh;right:0!important}
 /* 핍 크기 단계 */
-#pip.pip-sm{width:32vw;height:24vh}
-#pip.pip-md{width:52vw;height:38vh}
 #pip.pip-lg{width:80vw;height:60vh}
 #pip video{width:100%;height:100%;object-fit:cover}
 #pip-dot{position:absolute;top:5px;left:6px;width:6px;height:6px;border-radius:50%;background:#22C55E;animation:blink 1.5s infinite}
@@ -393,7 +391,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   <!-- 제스처 상태 표시 (GestureEngine v1.1) -->
   <div id="gesture-indicator" style="position:fixed;top:30%;left:50%;transform:translateX(-50%);background:rgba(245,166,35,0.92);border-radius:24px;padding:14px 32px;font-size:22px;color:#1a0a00;font-weight:800;letter-spacing:1px;z-index:70;opacity:0;transition:opacity 0.3s;pointer-events:none"></div>
 
-  <div id="pip" data-action="toggle-cam" style="cursor:pointer">
+  <div id="pip" style="cursor:pointer">
     <!-- 레이어 1: 카메라 (기본 모드) -->
     <video id="pip-video" autoplay muted playsinline></video>
     <!-- 레이어 2: 유튜브/외부영상 (설명 모드) -->
@@ -455,7 +453,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
         <span id="dbadge" style="margin-bottom:0">${APP_CONFIG?.BRAND_NAME||'미스터 콕'}</span>
         <button data-action="toggle-pause"
-          style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:rgba(255,255,255,0.7);font-size:14px;padding:2px 10px;cursor:pointer;touch-action:manipulation;pointer-events:all"
+          style="background:rgba(245,166,35,0.2);border:1.5px solid rgba(245,166,35,0.7);border-radius:12px;color:#FFD700;font-size:14px;font-weight:700;padding:3px 12px;cursor:pointer;touch-action:manipulation;pointer-events:all"
           id="dialog-pause-btn" title="멈춤/계속">⏸</button>
       </div>
       <div id="dtext"><span id="dcontent"></span><span class="cur"></span></div>
@@ -1244,7 +1242,7 @@ const CameraEngine = {
       document.getElementById('pip-fullscreen-btn')?.classList.add('visible');
       this._stream=await navigator.mediaDevices.getUserMedia({
         // HD 해상도 요청 — MediaPipe 제스처 인식 정확도 향상
-        video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}}
+        video:{width:{ideal:1280}, height:{ideal:720}}  // facingMode 제거 — 태블릿 호환성
       });
       document.getElementById('pip-video').srcObject=this._stream;
       console.log('[CameraEngine] 카메라 초기화 완료');
@@ -2526,39 +2524,12 @@ const AppController = {
       console.log('[Gesture] 자리 비움 — v1.1 활성화');
     });
 
-    // pip 핀치 리사이즈 (두 손가락으로 크기 조절)
-    (()=>{
-      const pip = document.getElementById('pip');
-      let initDist=0, initW=0, initH=0;
-      pip.addEventListener('touchstart', e=>{
-        if(e.touches.length===2){
-          const dx=e.touches[0].clientX-e.touches[1].clientX;
-          const dy=e.touches[0].clientY-e.touches[1].clientY;
-          initDist=Math.sqrt(dx*dx+dy*dy);
-          initW=pip.offsetWidth;
-          initH=pip.offsetHeight;
-          e.preventDefault();
-        }
-      },{passive:false});
-      pip.addEventListener('touchmove', e=>{
-        if(e.touches.length===2){
-          const dx=e.touches[0].clientX-e.touches[1].clientX;
-          const dy=e.touches[0].clientY-e.touches[1].clientY;
-          const dist=Math.sqrt(dx*dx+dy*dy);
-          const scale=dist/initDist;
-          const newW=Math.min(Math.max(initW*scale, 120), window.innerWidth*0.9);
-          const newH=Math.min(Math.max(initH*scale, 80), window.innerHeight*0.7);
-          pip.style.width=newW+'px';
-          pip.style.height=newH+'px';
-          e.preventDefault();
-        }
-      },{passive:false});
-      // 단일 탭/클릭 → 크기 순환
-      pip.addEventListener('click', e=>{
-        if(e.target.closest('#pip-toggle')) return; // 토글 버튼 제외
-        CameraEngine.cycleSize();
-      });
-    })();
+    // pip 탭/클릭 → 크기 순환 (핀치 리사이즈 제거)
+    document.getElementById('pip').addEventListener('click', e=>{
+      // 전체화면 버튼 클릭 시 크기 순환 안 함
+      if(e.target.closest('[data-action="toggle-pip-fullscreen"]')) return;
+      CameraEngine.cycleSize();
+    });
 
     // SimConnect 콜백 연결 (v1.1 활성화)
     SimConnectBridge.onButtonPressed(data=>{
