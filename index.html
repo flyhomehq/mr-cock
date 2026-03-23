@@ -991,12 +991,13 @@ const VoiceEngine = {
         document.getElementById('pip')?.classList.remove('scanning');
         const sc=document.getElementById('vision-scanner');
         if(sc) sc.style.display='none';
-        // 0.8초 후 음성인식 새로 시작 (에코 방지 + 빠른 재개)
+        // TTS 끝나면 음성인식 재시작
         setTimeout(()=>{
-          if(!VoiceEngine._isSpeaking && !VoiceRecognitionEngine._recog){
+          if(!VoiceEngine._isSpeaking){
+            VoiceRecognitionEngine.stop();
             VoiceRecognitionEngine.init(VoiceRecognitionEngine._lang);
           }
-        }, 800);
+        }, 600);
       };
       window.speechSynthesis.speak(u);
     };
@@ -1462,27 +1463,31 @@ const VoiceRecognitionEngine = {
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR) return;
     const r=new SR();
-    r.lang=lang; r.continuous=true; r.interimResults=true; r._dead=false;
-    r._lastFinal = ''; // 중복 처리 방지
+    // continuous:false — 태블릿 띵동 소리 방지 핵심
+    // 한 문장 인식 후 자동 종료 → onend에서 조용히 재시작
+    r.lang=lang; r.continuous=false; r.interimResults=true; r._dead=false;
+    r._lastFinal = '';
+
     r.onresult=e=>{
       const result = e.results[e.results.length-1];
       const said = result[0].transcript.toLowerCase().trim();
       const isFinal = result.isFinal;
 
-      // 중간 결과 — 화면에 표시만 (처리 안 함)
+      // 중간 결과 — 화면에 표시만
       const vh = document.getElementById('voice-heard');
-      if(vh) vh.textContent = said ? '"' + said + '"' : '';
       const vi = document.getElementById('voice-listening');
-      if(vi && AppController?.appState==='ACTIVE' && !AppController?.STATE?.paused){
+      if(vh) vh.textContent = said ? '"' + said + '"' : '';
+      if(vi && AppController?.appState==='ACTIVE'
+         && !AppController?.STATE?.paused
+         && !document.querySelector('.panel.open')
+         && AppController?.STATE?.micDisplay){
         vi.style.display='block';
       }
       IntelMonitor?.setLED('voice', true);
 
-      // 최종 결과만 처리
       if(!isFinal) return;
-      if(said === r._lastFinal) return; // 중복 방지
+      if(said === r._lastFinal) return;
       r._lastFinal = said;
-
       setTimeout(()=>{
         IntelMonitor?.setLED('voice', false);
         if(vi) vi.style.display='none';
@@ -1490,50 +1495,31 @@ const VoiceRecognitionEngine = {
       }, 1500);
       this._process(said);
     };
-    r.onstart=()=>{
-      // ACTIVE 상태이고 micDisplay ON일 때만 표시
-      if(AppController?.appState !== 'ACTIVE') return;
-      if(AppController?.STATE?.paused) return;
-      if(document.querySelector('.panel.open')) return;
-      if(!AppController?.STATE?.micDisplay) return;
-      const vi = document.getElementById('voice-listening');
-      if(vi) vi.style.display='block';
-    };
-    r.onspeechend=()=>{
-      // 발화 감지 종료 — 결과 처리 후 숨김은 onresult에서 처리
-    };
+
     r.onerror=(e)=>{
-      const vi = document.getElementById('voice-listening');
-      if(vi) vi.style.display='none';
-      if(e.error==='aborted') return; // aborted는 재시작 과정의 정상 현상 — 무시
+      if(e.error==='aborted'||e.error==='no-speech') return; // 정상 — 무시
       const errMap={
         'not-allowed':'마이크 권한 거부됨 — 브라우저 설정에서 허용해주세요',
-        'no-speech':'음성이 감지되지 않습니다 — 마이크를 확인해주세요',
-        'network':'네트워크 오류 — 인터넷 연결을 확인해주세요',
+        'network':'네트워크 오류',
         'audio-capture':'마이크 장치를 찾을 수 없습니다',
       };
       const msg=errMap[e.error]||`음성인식 오류: ${e.error}`;
       console.warn('[STT]', msg);
       if(e.error==='not-allowed'||e.error==='audio-capture'){
-        AppController?.toast('🎤 '+msg);
+        AppController?.toast('🎤 '+msg, 4000);
       }
     };
+
     r.onend=()=>{
-      // dead 상태거나 TTS 중이면 재시작 안 함
       if(r._dead) return;
       if(VoiceEngine._isSpeaking) return;
-      // 현재 _recog가 이 인식기가 아니면 (언어 변경됨) 재시작 안 함
       if(VoiceRecognitionEngine._recog !== r) return;
-      setTimeout(()=>{
-        try{
-          if(!r._dead && !VoiceEngine._isSpeaking && VoiceRecognitionEngine._recog===r){
-            r.start();
-          }
-        }catch(x){}
-      }, 800);
+      // 조용히 재시작 — 딜레이 없이 즉시
+      try{ r.start(); }catch(x){}
     };
+
     this._recog=r;
-    setTimeout(()=>{try{r.start();}catch(x){}},200);
+    setTimeout(()=>{ try{ r.start(); }catch(x){} }, 150);
   },
 
   setLang(lang){ this.init(lang); },
