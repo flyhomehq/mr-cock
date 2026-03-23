@@ -50,8 +50,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 #character.show{opacity:1}
 #character.right{left:68%}
 #character.center{left:50%}
-#progress-wrap{position:fixed;bottom:80px;left:0;right:0;height:8px;z-index:100;background:rgba(255,255,255,0.15);display:none}
-#progress-bar{height:100%;background:#F5A623;width:0%;transition:width 0.5s}
+/* progress-wrap 제거 — step-bar(점)만 사용 */
 #topbar{position:fixed;top:6px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 12px;z-index:90;height:44px}
 .top-btn{background:rgba(20,30,50,0.85);backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,0.3);border-radius:20px;color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;padding:6px 14px;cursor:pointer;touch-action:manipulation;user-select:none}
 .top-btn.host{border-color:rgba(245,166,35,0.7);color:#FFD060}
@@ -60,12 +59,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .phase-tab{background:rgba(20,30,50,0.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.7);font-family:'Noto Sans KR',sans-serif;font-size:11px;font-weight:500;padding:5px 10px;cursor:pointer;touch-action:manipulation;user-select:none;white-space:nowrap}
 .phase-tab.active{background:rgba(245,166,35,0.25);border-color:rgba(245,166,35,0.7);color:#FFD060}
 
-/* ── PIP 카메라 (우측 하단, 자동 페이드) ── */
-#pip{position:fixed;bottom:10%;right:0;width:28vw;height:21vh;min-width:160px;min-height:110px;max-width:95vw;max-height:80vh;border-radius:12px 0 0 12px;border:2px solid rgba(255,220,100,0.5);border-right:none;background:#111;overflow:hidden;z-index:45;opacity:1;display:none;transition:width 0.4s ease,height 0.4s ease}
+/* ── PIP 카메라 — 우측 상단 고정 ── */
+#pip{position:fixed;top:56px;right:0;width:32vw;height:26vh;min-width:180px;min-height:130px;max-width:95vw;max-height:80vh;border-radius:12px 0 0 12px;border:2px solid rgba(255,220,100,0.5);border-right:none;background:#111;overflow:hidden;z-index:45;opacity:1;display:none;transition:width 0.4s ease,height 0.4s ease;cursor:pointer}
+/* 핍 크기 단계 — 탭으로 순환 */
+#pip.pip-sm{width:32vw;height:26vh}
+#pip.pip-md{width:52vw;height:40vh}
+#pip.pip-lg{width:82vw;height:62vh}
 /* 핍 크기 단계 */
-#pip.pip-sm{width:28vw;height:21vh}
-#pip.pip-md{width:45vw;height:34vh}
-#pip.pip-lg{width:75vw;height:56vh}
+#pip.pip-sm{width:32vw;height:24vh}
+#pip.pip-md{width:52vw;height:38vh}
+#pip.pip-lg{width:80vw;height:60vh}
 #pip video{width:100%;height:100%;object-fit:cover}
 #pip-dot{position:absolute;top:5px;left:6px;width:6px;height:6px;border-radius:50%;background:#22C55E;animation:blink 1.5s infinite}
 /* 설명 오버레이 — AI 교관 설명 시 표시 */
@@ -87,17 +90,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 #btn-next{right:6px}
 #btn-prev:active,#btn-next:active{background:rgba(255,255,255,0.15)}
 .arrow-icon{font-size:32px;color:rgba(255,255,255,0.9)}
-#btn-pause{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:101;width:52px;height:52px;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.3);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;user-select:none}
-#step-bar{position:fixed;bottom:130px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:48;pointer-events:none}
-.sd{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.25);transition:all 0.3s}
-.sd.active{width:20px;border-radius:3px;background:#F5A623}
-.sd.done{background:rgba(245,166,35,0.45)}
+/* btn-pause 제거 — topbar ⏸ 버튼으로 통합 */
+#step-bar{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:48;pointer-events:none}
+.sd{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.3);transition:all 0.3s}
+.sd.active{width:32px;border-radius:6px;background:#F5A623;box-shadow:0 0 10px rgba(245,166,35,0.7)}
+.sd.done{background:rgba(245,166,35,0.55)}
 
 /* ── 대화창 ── */
 #dialog{position:fixed;bottom:0;left:0;right:0;z-index:55;padding:0 10px 10px;pointer-events:none}
-#dialog-inner{background:rgba(6,12,24,0.93);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:11px 14px 13px}
+#dialog-inner{background:rgba(6,12,24,0.93);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:8px 12px 10px}
 #dbadge{background:linear-gradient(90deg,#C47D0A,#F5A623);color:#1a0a00;font-size:12px;font-weight:700;padding:2px 12px;border-radius:20px;display:inline-block;margin-bottom:7px}
-#dtext{font-size:15px;font-weight:500;line-height:1.65;color:#fff;min-height:42px}
+#dtext{font-size:14px;font-weight:500;line-height:1.5;color:#fff;min-height:32px}
 .cur{display:inline-block;width:2px;height:15px;background:#F5A623;margin-left:2px;vertical-align:middle;animation:blink 0.8s step-end infinite}
 #choice-area{display:none;gap:8px;flex-wrap:wrap;margin-top:10px;pointer-events:all}
 #choice-area.visible{display:flex}
@@ -160,8 +163,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .pitch-btn.primary{background:rgba(245,166,35,0.2);border-color:rgba(245,166,35,0.6);color:#FFD060}
 /* 카메라 전체화면 모드 */
 #pip.fullscreen{position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0;border:none;z-index:55;transition:all 0.4s cubic-bezier(0.25,0.1,0.25,1)}
-#pip-fullscreen-btn{position:fixed;top:56px;right:12px;z-index:60;background:rgba(20,30,50,0.85);border:1.5px solid rgba(255,220,100,0.5);border-radius:20px;color:#FFD060;font-size:12px;padding:5px 12px;cursor:pointer;touch-action:manipulation;display:none}
-#pip-fullscreen-btn.visible{display:block}
+#pip-fullscreen-btn{display:none!important} /* 핍 탭으로 크기조절 — 버튼 불필요 */
 /* 멈춤 전체화면 오버레이 */
 #pause-overlay{
   position:fixed;inset:0;z-index:150;
@@ -368,7 +370,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
     <div class="phase-tab" data-action="set-phase" data-phase="1">🔋 시동</div>
     <div class="phase-tab" data-action="set-phase" data-phase="2">✈️ 이륙준비</div>
   </div>
-  <div id="progress-wrap"><div id="progress-bar"></div></div>
+  <!-- progress-wrap 제거 -->
   <img id="character" alt="">
   <div id="topbar">
     <!-- 좌측: 설정 + 모드변경 -->
@@ -393,7 +395,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   <!-- 제스처 상태 표시 (GestureEngine v1.1) -->
   <div id="gesture-indicator" style="position:fixed;top:30%;left:50%;transform:translateX(-50%);background:rgba(245,166,35,0.92);border-radius:24px;padding:14px 32px;font-size:22px;color:#1a0a00;font-weight:800;letter-spacing:1px;z-index:70;opacity:0;transition:opacity 0.3s;pointer-events:none"></div>
 
-  <div id="pip">
+  <div id="pip" data-action="toggle-cam" style="cursor:pointer">
     <!-- 레이어 1: 카메라 (기본 모드) -->
     <video id="pip-video" autoplay muted playsinline></video>
     <!-- 레이어 2: 유튜브/외부영상 (설명 모드) -->
@@ -421,14 +423,15 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       <div class="led" id="led-voice" title="음성 인식"></div>
       <div class="led" id="led-gesture" title="제스처 인식"></div>
     </div>
-    <div id="pip-toggle" data-action="toggle-cam">⤢</div>
+    <!-- pip 전체 탭으로 크기 전환 — pip-toggle 제거 -->
+    <div id="pip-fs-btn" data-action="toggle-pip-fullscreen"
+      style="position:absolute;bottom:5px;left:6px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,220,100,0.4);border-radius:8px;color:#FFD700;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;touch-action:manipulation">⛶</div>
   </div>
-  <!-- 카메라 전체화면 전환 버튼 -->
-  <div id="pip-fullscreen-btn" data-action="toggle-pip-fullscreen" style="display:block">⛶ 전체화면</div>
+
 
   <div id="btn-prev"><span class="arrow-icon">‹</span></div>
   <div id="btn-next"><span class="arrow-icon">›</span></div>
-  <div id="btn-pause"><span id="pause-icon" style="font-size:18px;color:#fff">⏸</span></div>
+  <!-- btn-pause 제거 — topbar ⏸ 버튼 사용 -->
   <div id="step-bar"></div>
   <!-- ════ 위치 기반 광고 카드 (금맥 핵심) ════ -->
   <div id="ad-overlay">
@@ -2492,11 +2495,12 @@ const AppController = {
 
     // 버튼
     // 터치 최적화: pointerdown 사용 (touchstart보다 호환성 좋음)
-    ['btn-prev','btn-next','btn-pause'].forEach(id=>{
+    ['btn-prev','btn-next'].forEach(id=>{
       const el=document.getElementById(id);
-      const fn=id==='btn-prev'?()=>this.goBack():id==='btn-next'?()=>this.advance():()=>this.togglePause();
+      if(!el) return;
+      const fn=id==='btn-prev'?()=>this.goBack():()=>this.advance();
       el.addEventListener('pointerdown',e=>{
-        e.preventDefault(); // 기본 동작 방지
+        e.preventDefault();
         e.stopPropagation();
         fn();
       });
@@ -2542,6 +2546,11 @@ const AppController = {
           e.preventDefault();
         }
       },{passive:false});
+      // 단일 탭/클릭 → 크기 순환
+      pip.addEventListener('click', e=>{
+        if(e.target.closest('#pip-toggle')) return; // 토글 버튼 제외
+        CameraEngine.cycleSize();
+      });
     })();
 
     // SimConnect 콜백 연결 (v1.1 활성화)
@@ -2588,7 +2597,11 @@ const AppController = {
       case 'voice-on':          window.speechSynthesis.cancel(); this.toggleVoice(true);  break;
       case 'voice-off':         this.toggleVoice(false); break;
       // 카메라
-      case 'toggle-cam':        CameraEngine.cycleSize(); break;
+      case 'toggle-cam':
+        // pip 내부 다른 버튼 클릭 시 중복 방지
+        if(e?.target?.closest('[data-action="toggle-pip-fullscreen"]')) break;
+        CameraEngine.cycleSize();
+        break;
       // 네비
       case 'toggle-pause':      this.togglePause(); break;
       case 'go-back':           this.goBack();      break;
@@ -2679,8 +2692,6 @@ const AppController = {
     this._stopSplashBg();
     document.getElementById('mode-select').classList.add('hidden');
     // ACTIVE 진입 시 UI 요소 표시
-    document.getElementById('progress-wrap').style.display='block';
-    document.getElementById('btn-pause').style.display='flex';
     document.getElementById('phase-tabs').style.display='flex';
     document.getElementById('pip').style.display='block';
     CameraEngine.setSize('sm'); // 소형으로 시작
@@ -2781,8 +2792,6 @@ const AppController = {
   showModeSelect(){
     // 모드선택 화면으로 돌아갈 때 ACTIVE 전용 UI 숨기기
     document.getElementById('pip').style.display='none';
-    document.getElementById('progress-wrap').style.display='none';
-    document.getElementById('btn-pause').style.display='none';
     document.getElementById('phase-tabs').style.display='none';
     document.getElementById('mic-btn-wrap').style.display='none';
     // 음성 완전 중단
@@ -2832,7 +2841,7 @@ const AppController = {
 
     const total=(this._scenes[this.STATE.phase]||[]).length;
     const pct=total>1?Math.round(this.STATE.step/(total-1)*100):100;
-    document.getElementById('progress-bar').style.width=pct+'%';
+    // progress-bar 제거됨 — step-bar(점)만 사용
     this._renderDots();
 
     clearTimeout(this._autoTimer);
@@ -2895,20 +2904,15 @@ const AppController = {
   togglePause(){
     this.STATE.paused=!this.STATE.paused;
     this._setState(this.STATE.paused?'PAUSED':'ACTIVE');
-    const icon = document.getElementById('pause-icon');
-    const btn  = document.getElementById('btn-pause');
     const overlay = document.getElementById('pause-overlay');
     if(this.STATE.paused){
-      if(icon) icon.textContent='▶';
-      if(btn)  btn.style.background='rgba(245,166,35,0.4)';
       window.speechSynthesis.cancel(); // TTS 즉시 중단
       VoiceEngine.stop();
       clearTimeout(this._autoTimer);   // 자동 진행 타이머 완전 제거
       if(overlay) overlay.classList.add('show');
       this.toast('⏸ 멈춤');
     } else {
-      if(icon) icon.textContent='⏸';
-      if(btn)  btn.style.background='rgba(0,0,0,0.5)';
+
       clearTimeout(this._autoTimer);   // 자동 진행 없음
       if(overlay) overlay.classList.remove('show');
       this.toast('▶ 계속');
@@ -2995,20 +2999,14 @@ const AppController = {
       if(this.appState === 'ACTIVE'){
         this.STATE.paused = true;
         this._setState('PAUSED');
-        const icon = document.getElementById('pause-icon');
-        const btn  = document.getElementById('btn-pause');
-        if(icon) icon.textContent='▶';
-        if(btn)  btn.style.background='rgba(245,166,35,0.4)';
+
       }
     } else {
       // 패널 닫힐 때 자동 재개
       if(this.STATE.paused){
         this.STATE.paused = false;
         this._setState('ACTIVE');
-        const icon = document.getElementById('pause-icon');
-        const btn  = document.getElementById('btn-pause');
-        if(icon) icon.textContent='⏸';
-        if(btn)  btn.style.background='rgba(0,0,0,0.5)';
+
         document.getElementById('pause-overlay')?.classList.remove('show');
         VoiceEngine.resume();
         // 자동 재개 없음 — 사람이 직접 조작
