@@ -2352,8 +2352,9 @@ const AppController = {
   // INIT → MODE_SELECT → ACTIVE ↔ PAUSED
   appState: 'INIT',
   _validTransitions: {
-    INIT:        ['MODE_SELECT'],
-    MODE_SELECT: ['ACTIVE'],
+    INIT:        ['LANG_SELECT'],
+    LANG_SELECT: ['MODE_SELECT'],
+    MODE_SELECT: ['ACTIVE','LANG_SELECT'],
     ACTIVE:      ['PAUSED','MODE_SELECT'],
     PAUSED:      ['ACTIVE','MODE_SELECT'],
   },
@@ -2373,14 +2374,28 @@ const AppController = {
 
   // 상태 변경 시 UI 자동 전환
   _onStateChange(state){
-    const modeSelect=document.getElementById('mode-select');
-    const micWrap=document.getElementById('mic-btn-wrap');
-    if(state==='MODE_SELECT'){
+    const langSelect  = document.getElementById('lang-select');
+    const modeSelect  = document.getElementById('mode-select');
+    const micWrap     = document.getElementById('mic-btn-wrap');
+
+    // 언어 선택 화면
+    if(state==='LANG_SELECT'){
+      langSelect?.classList.remove('hidden');
+      modeSelect?.classList.add('hidden');
+      if(micWrap) micWrap.style.display='none';
+    }
+    // 모드 선택 화면
+    else if(state==='MODE_SELECT'){
+      langSelect?.classList.add('hidden');
       modeSelect?.classList.remove('hidden');
       if(micWrap) micWrap.style.display='none';
-    } else {
+      // 모드선택 배경 적용
+      this._applyBg('mode-select', this.SPLASH_URLS.mode);
+    }
+    // 학습/일시정지 화면
+    else {
+      langSelect?.classList.add('hidden');
       modeSelect?.classList.add('hidden');
-      // ACTIVE/PAUSED 상태에서 마이크 버튼 표시
       if(micWrap && (state==='ACTIVE'||state==='PAUSED')){
         micWrap.style.display = this.STATE.micEnabled ? 'block' : 'none';
       }
@@ -2403,8 +2418,8 @@ const AppController = {
   PHASE_KEYS: ['intro','startup','taxi'],
 
   init(){
-    // 상태머신 시작
-    this._setState('MODE_SELECT');
+    // 상태머신 시작 — 언어 선택이 첫 화면
+    this._setState('LANG_SELECT');
 
     // 브랜드명 적용 (APP_CONFIG 기반)
     document.title = `CockpitOS — ${APP_CONFIG.BRAND_NAME}`;
@@ -2533,17 +2548,13 @@ const AppController = {
     switch(action){
       // 언어 재선택 (모드선택 → 언어선택으로 뒤로)
       case 'back-to-lang':
-        document.getElementById('mode-select').classList.add('hidden');
-        document.getElementById('lang-select').classList.remove('hidden');
+        this._setState('LANG_SELECT');
         break;
       // 언어 선택 (최초 화면)
       case 'select-lang':{
         this.pickLang(dataset.lang||'ko');
-        document.getElementById('lang-select').classList.add('hidden');
-        document.getElementById('mode-select').classList.remove('hidden');
         this._updateModeSelect(dataset.lang||'ko');
-        // 모드 선택 화면 배경 적용
-        this._applyBg('mode-select', this.SPLASH_URLS.mode);
+        this._setState('MODE_SELECT');
         break;
       }
       case 'start-beginner':    this.startMode('beginner'); break;
