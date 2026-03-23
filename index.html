@@ -216,16 +216,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .lang-select-btn{background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px 16px;cursor:pointer;text-align:center;touch-action:manipulation;transition:all 0.2s;color:#fff}
 .lang-select-btn:hover,.lang-select-btn:active{background:rgba(245,166,35,0.15);border-color:rgba(245,166,35,0.6)}
 /* 모드 선택 */
-#mode-select{position:fixed;inset:0;z-index:97;background:rgba(4,8,18,0.97);display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px;background-size:cover;background-position:center}
+#mode-select{position:fixed;inset:0;z-index:97;background:rgba(0,0,0,0);display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px;background-size:cover;background-position:center}
 #mode-select.show{display:flex}
-/* 모드선택 오버레이 — 배경 가리기 */
-#mode-select::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,0.45);z-index:0}
+/* 모드선택 오버레이 — 최소화 */
+#mode-select::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,0.15);z-index:0}
 #mode-select>*{position:relative;z-index:1}
 .mode-title{font-size:24px;font-weight:700;color:#F5A623;margin-bottom:6px;text-align:center}
 .mode-sub{font-size:14px;color:rgba(255,255,255,0.55);margin-bottom:28px;text-align:center;line-height:1.6}
-.mode-btn{width:100%;max-width:360px;background:rgba(10,20,40,0.75);border:2px solid rgba(255,255,255,0.6);border-radius:16px;padding:18px 22px;margin-bottom:14px;cursor:pointer;text-align:left;touch-action:manipulation;backdrop-filter:blur(12px)}
-.mode-btn:active{background:rgba(245,166,35,0.3);border-color:#FFD700}
-.mode-btn.gold{border-color:#FFD700;background:rgba(245,166,35,0.2)}
+.mode-btn{width:100%;max-width:360px;background:rgba(5,10,25,0.82);border:2px solid rgba(255,255,255,0.75);border-radius:16px;padding:18px 22px;margin-bottom:14px;cursor:pointer;text-align:left;touch-action:manipulation;backdrop-filter:blur(14px)}
+.mode-btn:active{background:rgba(245,166,35,0.4);border-color:#FFD700}
+.mode-btn.gold{border-color:#FFD700;background:rgba(40,25,0,0.82)}
 .mode-btn-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px}
 .mode-btn-desc{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.5}
 </style>
