@@ -383,8 +383,8 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   <div id="mic-btn-wrap" style="position:fixed;left:0;top:35%;transform:translateY(-50%);z-index:95;display:none">
     <button id="mic-listen-btn" data-action="ask-question"
       style="background:rgba(180,20,20,0.85);border:2px solid rgba(255,80,80,0.8);border-left:none;border-radius:0 16px 16px 0;color:#fff;font-size:28px;padding:18px 14px;cursor:pointer;touch-action:manipulation;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:4px 0 20px rgba(255,50,50,0.3)">
-      🎤
-      <span style="font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.9)">질문</span>
+      <span id="mic-btn-icon">🎤</span>
+      <span id="mic-btn-label" style="font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.9)">질문</span>
     </button>
   </div>
 
@@ -442,10 +442,20 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
     </div>
   </div>
   <!-- 마이크 입력 중 표시 — 화면 중앙 크게 -->
-  <div id="voice-listening" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:190;background:rgba(0,0,0,0.88);border:2px solid rgba(255,80,80,0.8);border-radius:20px;padding:16px 28px;text-align:center;pointer-events:none;min-width:220px;max-width:80vw">
-    <div style="font-size:32px;margin-bottom:6px">🎤</div>
-    <div style="font-size:16px;font-weight:700;color:#ff4444;letter-spacing:1px">듣고 있어요</div>
-    <div id="voice-heard" style="font-size:15px;color:#FFD700;margin-top:8px;line-height:1.4;min-height:22px;word-break:break-all"></div>
+  <div id="voice-listening" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:190;background:rgba(0,0,0,0.92);border:2px solid rgba(255,80,80,0.8);border-radius:20px;padding:16px 20px 14px;text-align:center;pointer-events:all;min-width:270px;max-width:88vw">
+    <div style="font-size:28px;margin-bottom:4px">🎤</div>
+    <div style="font-size:15px;font-weight:700;color:#ff4444;letter-spacing:1px">듣고 있어요</div>
+    <div id="voice-heard" style="font-size:14px;color:#FFD700;margin-top:8px;line-height:1.4;min-height:22px;word-break:break-all"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;justify-content:center">
+      <button id="voice-send-btn" data-action="voice-send"
+        style="background:rgba(245,166,35,0.9);border:none;border-radius:14px;color:#1a0a00;font-size:14px;font-weight:800;padding:9px 20px;cursor:pointer;touch-action:manipulation">
+        ✈ AI에게 물어보기
+      </button>
+      <button data-action="voice-cancel"
+        style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:14px;color:rgba(255,255,255,0.7);font-size:13px;font-weight:600;padding:9px 14px;cursor:pointer;touch-action:manipulation">
+        마치기
+      </button>
+    </div>
   </div>
 
   <div id="dialog">
@@ -1726,15 +1736,8 @@ const VoiceRecognitionEngine = {
       return;
     }
 
-    // ② qaMode ON: 로컬 매칭 실패 → AI에게 전달
+    // ② qaMode ON: 자동 AI 호출 제거 — [AI에게 물어보기] 버튼으로만 전송
     if(AppController?.STATE?.qaMode){
-      window.speechSynthesis.cancel(); // 기존 TTS 즉시 중단
-      VoiceEngine.stop();
-      clearTimeout(AppController?._autoTimer);
-      DialogEngine.show('🤖 ...', false); // 처리 중 표시 (TTS 없음)
-      AIEngine.ask(cleanSaid||said,{mode:'host_qa'}).then(ans=>{
-        if(ans){ DialogEngine.show(ans); }
-      });
       return;
     }
     // 번호 인식 — 숫자/한글 모두 지원
@@ -2654,11 +2657,78 @@ const AppController = {
       case 'ask-question':{
         const vi2=document.getElementById('voice-listening');
         const vh2=document.getElementById('voice-heard');
+        // 이미 열려있으면 → 마치기(토글)
+        if(vi2 && vi2.style.display==='block'){
+          vi2.style.display='none';
+          if(vh2) vh2.textContent='';
+          VoiceRecognitionEngine.stop();
+          clearTimeout(this._micAutoCloseTimer);
+          const mI=document.getElementById('mic-btn-icon');
+          const mL=document.getElementById('mic-btn-label');
+          if(mI) mI.textContent='🎤';
+          if(mL) mL.textContent='질문';
+          break;
+        }
+        // 소리박스 열기 — 마이크만 시작, AI는 버튼 누를 때만
         if(vi2) vi2.style.display='block';
         if(vh2) vh2.textContent='';
-        DialogEngine.show(this.STATE.lang==='ko'?'질문하세요. 듣고 있습니다.':'Ask your question.', false);
+        DialogEngine.show(this.STATE.lang==='ko'?'질문하세요. 다 말하면 [AI에게 물어보기]를 누르세요.':'Speak, then tap [Ask AI].', false);
         VoiceRecognitionEngine.listenOnce();
-        setTimeout(()=>{ if(vi2) vi2.style.display='none'; }, 8000);
+        // 버튼 상태 → 활성 표시
+        const mI2=document.getElementById('mic-btn-icon');
+        const mL2=document.getElementById('mic-btn-label');
+        if(mI2) mI2.textContent='🔴';
+        if(mL2) mL2.textContent='마치기';
+        // 60초 안전장치
+        clearTimeout(this._micAutoCloseTimer);
+        this._micAutoCloseTimer = setTimeout(()=>{
+          const v=document.getElementById('voice-listening');
+          if(v && v.style.display==='block'){
+            v.style.display='none';
+            const mI3=document.getElementById('mic-btn-icon');
+            const mL3=document.getElementById('mic-btn-label');
+            if(mI3) mI3.textContent='🎤';
+            if(mL3) mL3.textContent='질문';
+          }
+        }, 60000);
+        break;
+      }
+      case 'voice-send':{
+        const vh3=document.getElementById('voice-heard');
+        const said=(vh3?.textContent||'').replace(/["""]/g,'').trim();
+        const vi3=document.getElementById('voice-listening');
+        VoiceRecognitionEngine.stop();
+        clearTimeout(this._micAutoCloseTimer);
+        const mIs=document.getElementById('mic-btn-icon');
+        const mLs=document.getElementById('mic-btn-label');
+        if(mIs) mIs.textContent='🎤';
+        if(mLs) mLs.textContent='질문';
+        if(!said){
+          DialogEngine.show(this.STATE.lang==='ko'?'말씀하신 내용이 없어요. 마이크 버튼을 누르고 말씀해 주세요.':'Nothing detected.', false);
+          if(vi3) vi3.style.display='none';
+          break;
+        }
+        if(vi3) vi3.style.display='none';
+        window.speechSynthesis.cancel();
+        VoiceEngine.stop();
+        clearTimeout(this._autoTimer);
+        DialogEngine.show('🤖 ...', false);
+        AIEngine.ask(said, {mode:'host_qa'}).then(ans=>{
+          if(ans){ DialogEngine.show(ans); }
+        });
+        break;
+      }
+      case 'voice-cancel':{
+        const vi4=document.getElementById('voice-listening');
+        const vh4=document.getElementById('voice-heard');
+        if(vi4) vi4.style.display='none';
+        if(vh4) vh4.textContent='';
+        VoiceRecognitionEngine.stop();
+        clearTimeout(this._micAutoCloseTimer);
+        const mIc=document.getElementById('mic-btn-icon');
+        const mLc=document.getElementById('mic-btn-label');
+        if(mIc) mIc.textContent='🎤';
+        if(mLc) mLc.textContent='질문';
         break;
       }
       case 'save-api-key':{
