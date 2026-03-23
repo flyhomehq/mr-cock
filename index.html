@@ -78,7 +78,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 .led{width:8px;height:8px;border-radius:50%;background:#333;transition:all 0.3s}
 .led.on-voice{background:#ff3300;box-shadow:0 0 8px #ff3300}
 .led.on-gesture{background:#00ff88;box-shadow:0 0 8px #00ff88}
-#pip-lbl{position:absolute;top:4px;right:8px;font-size:9px;color:rgba(255,255,255,0.5)}
+#pip-lbl{position:absolute;top:6px;right:8px;font-size:9px;color:rgba(255,255,255,0.5)}
 #pip-toggle{position:absolute;bottom:5px;right:6px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,220,100,0.5);border-radius:8px;color:#FFD700;font-size:11px;font-weight:700;padding:3px 8px;cursor:pointer;touch-action:manipulation;user-select:none}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
 
@@ -421,7 +421,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
     </div>
     <!-- pip 전체 탭으로 크기 전환 — pip-toggle 제거 -->
     <div id="pip-fs-btn" data-action="toggle-pip-fullscreen"
-      style="position:absolute;bottom:5px;left:6px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,220,100,0.4);border-radius:8px;color:#FFD700;font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;touch-action:manipulation">⛶</div>
+      style="position:absolute;top:4px;right:28px;background:rgba(0,0,0,0.7);border:1px solid rgba(255,220,100,0.6);border-radius:6px;color:#FFD700;font-size:13px;font-weight:700;padding:2px 8px;cursor:pointer;touch-action:manipulation;z-index:10">⛶</div>
   </div>
 
 
@@ -1254,7 +1254,13 @@ const CameraEngine = {
         NotSupportedError:'카메라 미지원',
       }[err.name]||err.message;
       console.warn('[CameraEngine]',msg);
-      document.getElementById('pip').style.display='none';
+      // 카메라 오류 시에도 pip 박스 표시 (카메라 없이)
+      const pipEl = document.getElementById('pip');
+      if(pipEl){
+        pipEl.style.display='block';
+        document.getElementById('pip-lbl').textContent='NO CAM';
+        document.getElementById('pip-dot').style.background='#ef4444';
+      }
     }
   },
 
@@ -1313,12 +1319,9 @@ const CameraEngine = {
     if(btn) btn.textContent = size==='sm'?'⤢':size==='md'?'⤡':'✕';
   },
   cycleSize(){
-    // sm → md → lg → sm 순환 (lg에서 탭하면 소형으로 원위치)
     const next = this._pipSize==='sm'?'md':this._pipSize==='md'?'lg':'sm';
     this.setSize(next);
-    // 크기 안내 토스트
-    const labels = {sm:'소형', md:'중형', lg:'대형'};
-    AppController?.toast(`📷 ${labels[next]}`+' (다시 탭하면 전환)', 1500);
+    AppController?.toast({sm:'📷 소형', md:'📷 중형', lg:'📷 대형'}[next]||'', 1000);
   },
 
   // ── v1.1 연결 준비 (그릇) ──
@@ -2524,12 +2527,14 @@ const AppController = {
       console.log('[Gesture] 자리 비움 — v1.1 활성화');
     });
 
-    // pip 탭/클릭 → 크기 순환 (핀치 리사이즈 제거)
+    // pip 탭/클릭 → 크기 순환
+    // data-action 요소(버튼 등) 클릭 시는 제외
+    // pip 탭 크기 순환 — capture:true로 stopPropagation 우회
     document.getElementById('pip').addEventListener('click', e=>{
-      // 전체화면 버튼 클릭 시 크기 순환 안 함
-      if(e.target.closest('[data-action="toggle-pip-fullscreen"]')) return;
+      if(e.target.closest('[data-action]')) return; // 내부 버튼 제외
+      e.stopPropagation(); // 화면 전체 클릭(멈춤) 방지
       CameraEngine.cycleSize();
-    });
+    }, true); // capture phase
 
     // SimConnect 콜백 연결 (v1.1 활성화)
     SimConnectBridge.onButtonPressed(data=>{
@@ -2669,6 +2674,8 @@ const AppController = {
     document.getElementById('mode-select').classList.add('hidden');
     // ACTIVE 진입 시 UI 요소 표시
     document.getElementById('phase-tabs').style.display='flex';
+    const pipEl = document.getElementById('pip');
+    if(pipEl){ pipEl.style.display='block'; pipEl.style.removeProperty('display'); }
     document.getElementById('pip').style.display='block';
     CameraEngine.setSize('sm'); // 소형으로 시작
     document.getElementById('mic-btn-wrap').style.display = this.STATE.micEnabled ? 'block' : 'none';
