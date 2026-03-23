@@ -1240,10 +1240,17 @@ const CameraEngine = {
     }
     try{
       document.getElementById('pip-fullscreen-btn')?.classList.add('visible');
-      this._stream=await navigator.mediaDevices.getUserMedia({
-        // HD 해상도 요청 — MediaPipe 제스처 인식 정확도 향상
-        video:{width:{ideal:1280}, height:{ideal:720}}  // facingMode 제거 — 태블릿 호환성
-      });
+      // 후면 카메라 먼저 시도 → 실패 시 기본 카메라
+      try{
+        this._stream=await navigator.mediaDevices.getUserMedia({
+          video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}
+        });
+      }catch(e1){
+        // 후면 실패 → 기본 카메라로 재시도
+        this._stream=await navigator.mediaDevices.getUserMedia({
+          video:{width:{ideal:1280}, height:{ideal:720}}
+        });
+      }
       document.getElementById('pip-video').srcObject=this._stream;
       console.log('[CameraEngine] 카메라 초기화 완료');
     }catch(err){
