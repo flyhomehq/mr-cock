@@ -442,10 +442,21 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
     </div>
   </div>
   <!-- 마이크 입력 중 표시 — 화면 중앙 크게 -->
-  <div id="voice-listening" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:190;background:rgba(0,0,0,0.88);border:2px solid rgba(255,80,80,0.8);border-radius:20px;padding:16px 28px;text-align:center;pointer-events:none;min-width:220px;max-width:80vw">
-    <div style="font-size:32px;margin-bottom:6px">🎤</div>
-    <div style="font-size:16px;font-weight:700;color:#ff4444;letter-spacing:1px">듣고 있어요</div>
-    <div id="voice-heard" style="font-size:15px;color:#FFD700;margin-top:8px;line-height:1.4;min-height:22px;word-break:break-all"></div>
+  <div id="voice-listening" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:190;background:rgba(0,0,0,0.92);border:2px solid rgba(255,80,80,0.8);border-radius:20px;padding:16px 20px 14px;text-align:center;pointer-events:all;min-width:260px;max-width:85vw">
+    <div style="font-size:28px;margin-bottom:4px">🎤</div>
+    <div style="font-size:15px;font-weight:700;color:#ff4444;letter-spacing:1px">듣고 있어요</div>
+    <div id="voice-heard" style="font-size:14px;color:#FFD700;margin-top:8px;line-height:1.4;min-height:22px;word-break:break-all"></div>
+    <!-- AI 답변 요청 버튼 — 사용자가 말을 다 마친 뒤 누름 -->
+    <div style="display:flex;gap:8px;margin-top:12px;justify-content:center">
+      <button id="voice-send-btn" data-action="voice-send"
+        style="background:rgba(245,166,35,0.9);border:none;border-radius:14px;color:#1a0a00;font-size:14px;font-weight:800;padding:9px 22px;cursor:pointer;touch-action:manipulation;letter-spacing:0.5px">
+        ✈ AI에게 물어보기
+      </button>
+      <button data-action="voice-cancel"
+        style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:14px;color:rgba(255,255,255,0.7);font-size:13px;font-weight:600;padding:9px 16px;cursor:pointer;touch-action:manipulation">
+        마치기
+      </button>
+    </div>
   </div>
 
   <div id="dialog">
@@ -1042,12 +1053,6 @@ const VoiceEngine = {
 
   play(text){
     if(!this.enabled||!text) return;
-    // 안전장치 — 이전 TTS가 비정상 종료로 _isSpeaking이 굳은 경우 강제 리셋
-    if(this._isSpeaking){
-      window.speechSynthesis.cancel();
-      this._isSpeaking = false;
-      document.getElementById('character')?.classList.remove('speaking');
-    }
     const refined=text
       .replace(/(\d+)번/g,'$1번')
       .replace(/\bft\b/g,'피트')
@@ -1057,54 +1062,29 @@ const VoiceEngine = {
     const u=new SpeechSynthesisUtterance(refined);
     u.lang=this.lang; u.rate=0.92; u.pitch=0.75; u.volume=1;
     const trySpeak=()=>{
+      // 캐시된 음성 즉시 사용 (딜레이 제거)
       const vs = this._voices.length ? this._voices : window.speechSynthesis.getVoices();
       if(!vs.length){ setTimeout(trySpeak,100); return; }
+      // 남성 음성 우선 선택, 없으면 해당 언어 첫 번째
       const langCode = this.lang.split('-')[0];
       const v = vs.find(v=>v.lang===this.lang && v.name.match(/male|man|남성|남자/i))
              || vs.find(v=>v.lang===this.lang)
              || vs.find(v=>v.lang&&v.lang.startsWith(langCode));
       if(v) u.voice=v;
       u.onstart=()=>{
+        // TTS 시작 → 플래그 ON + 음성인식 완전 중단
         VoiceEngine._isSpeaking = true;
-        // 안전장치 — 최대 60초 후 플래그 강제 해제 (onend 미호출 대비)
-        clearTimeout(VoiceEngine._speakSafeTimer);
-        VoiceEngine._speakSafeTimer = setTimeout(()=>{
-          if(VoiceEngine._isSpeaking){
-            VoiceEngine._isSpeaking = false;
-            document.getElementById('character')?.classList.remove('speaking');
-          }
-        }, 60000);
         if(VoiceRecognitionEngine._recog){
-          VoiceRecognitionEngine._recog._dead = true;
+          VoiceRecognitionEngine._recog._dead = true; // onend 재시작 차단
           try{ VoiceRecognitionEngine._recog.abort(); }catch(x){}
         }
         document.getElementById('character')?.classList.add('speaking');
       };
       u.onend=()=>{
-        clearTimeout(VoiceEngine._speakSafeTimer);
+        // TTS 종료 → 플래그 OFF + 음성인식 새로 init (재시작 아닌 새 객체)
         VoiceEngine._isSpeaking = false;
         document.getElementById('character')?.classList.remove('speaking');
-        // AI 답변 TTS 완료 → 소리박스 자동 닫기 + 버튼 원래 상태로
-        const vi = document.getElementById('voice-listening');
-        const vh = document.getElementById('voice-heard');
-        if(vi && vi.style.display==='block'){
-          setTimeout(()=>{
-            vi.style.display='none';
-            if(vh) vh.textContent='';
-            const mI=document.getElementById('mic-btn-icon');
-            const mL=document.getElementById('mic-btn-label');
-            const mB=document.getElementById('mic-listen-btn');
-            if(mI) mI.textContent='🎤';
-            if(mL) mL.textContent='질문';
-            if(mB) mB.style.background='rgba(180,20,20,0.85)';
-          }, 800);
-        }
-      };
-      u.onerror=(e)=>{
-        clearTimeout(VoiceEngine._speakSafeTimer);
-        VoiceEngine._isSpeaking = false;
-        document.getElementById('character')?.classList.remove('speaking');
-        console.warn('[VoiceEngine] TTS 오류:', e.error);
+        // TTS 끝난 후 마이크 자동 재시작 없음 — 버튼으로만 인식
       };
       window.speechSynthesis.speak(u);
     };
@@ -1707,15 +1687,12 @@ const VoiceRecognitionEngine = {
       return;
     }
 
-    // ② qaMode ON: 로컬 매칭 실패 → AI에게 전달
+    // ② qaMode ON: 로컬 매칭 실패
+    // ⚠️ 자동 AI 호출 제거 — "AI에게 물어보기" 버튼 누를 때만 AI 호출
+    // (사용자가 말을 다 마쳤는지 알 수 없어 중간에 잘리는 문제 방지)
     if(AppController?.STATE?.qaMode){
-      window.speechSynthesis.cancel(); // 기존 TTS 즉시 중단
-      VoiceEngine.stop();
-      clearTimeout(AppController?._autoTimer);
-      DialogEngine.show('🤖 ...', false); // 처리 중 표시 (TTS 없음)
-      AIEngine.ask(cleanSaid||said,{mode:'host_qa'}).then(ans=>{
-        if(ans){ DialogEngine.show(ans); }
-      });
+      // 인식된 텍스트를 voice-heard에 표시만 하고 대기
+      // 사용자가 [AI에게 물어보기] 버튼 누르면 voice-send 핸들러가 처리
       return;
     }
     // 번호 인식 — 숫자/한글 모두 지원
@@ -2635,44 +2612,83 @@ const AppController = {
       case 'ask-question':{
         const vi2=document.getElementById('voice-listening');
         const vh2=document.getElementById('voice-heard');
-        // 이미 열려 있으면 → 사용자가 닫으려는 의도 → 닫기
+        // 이미 열려 있으면 → 마치기 (토글)
         if(vi2 && vi2.style.display==='block'){
           vi2.style.display='none';
           if(vh2) vh2.textContent='';
           VoiceRecognitionEngine.stop();
           clearTimeout(this._micAutoCloseTimer);
-          // 버튼 원래 상태로
-          const micIcon = document.getElementById('mic-btn-icon');
-          const micLabel = document.getElementById('mic-btn-label');
-          const micBtn = document.getElementById('mic-listen-btn');
-          if(micIcon) micIcon.textContent='🎤';
-          if(micLabel) micLabel.textContent='질문';
-          if(micBtn) micBtn.style.background='rgba(180,20,20,0.85)';
+          const mI=document.getElementById('mic-btn-icon');
+          const mL=document.getElementById('mic-btn-label');
+          if(mI) mI.textContent='🎤';
+          if(mL) mL.textContent='질문';
           break;
         }
-        // 소리박스 열기
+        // 소리박스 열기 — 마이크만 시작, AI 답변은 아직 안 함
         if(vi2) vi2.style.display='block';
         if(vh2) vh2.textContent='';
-        // 버튼 활성 상태 표시
-        const micIconOpen = document.getElementById('mic-btn-icon');
-        const micLabelOpen = document.getElementById('mic-btn-label');
-        const micBtnOpen = document.getElementById('mic-listen-btn');
-        if(micIconOpen) micIconOpen.textContent='🔴';
-        if(micLabelOpen) micLabelOpen.textContent='닫기';
-        if(micBtnOpen) micBtnOpen.style.background='rgba(200,0,0,0.95)';
-        DialogEngine.show(this.STATE.lang==='ko'?'질문하세요. 듣고 있습니다.':'Ask your question.', false);
+        DialogEngine.show(this.STATE.lang==='ko'?'질문하세요. 말을 마치면 [AI에게 물어보기]를 누르세요.':'Ask your question, then tap [Ask AI].', false);
         VoiceRecognitionEngine.listenOnce();
-        // ⚠️ 자동 닫기 타이머 제거 — 말할 때 & AI 답변 완료 후까지 유지
-        // 닫히는 조건: 1) 사용자가 마이크 버튼 다시 누를 때  2) AI 답변 완료 후
-        // (아래 _process 함수 내 AIEngine.ask 완료 시 닫음)
-        // 단, 무음 30초 경과 시 자동 닫기 (안전장치)
+        // 버튼 상태 변경 — 마이크 활성 중임을 표시
+        const mI2=document.getElementById('mic-btn-icon');
+        const mL2=document.getElementById('mic-btn-label');
+        if(mI2) mI2.textContent='🔴';
+        if(mL2) mL2.textContent='마치기';
+        // 안전장치 — 60초 무활동 시 자동 닫기
         clearTimeout(this._micAutoCloseTimer);
         this._micAutoCloseTimer = setTimeout(()=>{
-          if(vi2 && vi2.style.display==='block'){
-            vi2.style.display='none';
-            if(vh2) vh2.textContent='';
+          const v=document.getElementById('voice-listening');
+          if(v && v.style.display==='block'){
+            v.style.display='none';
+            const mI3=document.getElementById('mic-btn-icon');
+            const mL3=document.getElementById('mic-btn-label');
+            if(mI3) mI3.textContent='🎤';
+            if(mL3) mL3.textContent='질문';
           }
-        }, 30000);
+        }, 60000);
+        break;
+      }
+      // ── "AI에게 물어보기" 버튼 — 사용자가 말 마친 뒤 수동 전송
+      case 'voice-send':{
+        const vh3=document.getElementById('voice-heard');
+        const said=(vh3?.textContent||'').replace(/["""]/g,'').trim();
+        const vi3=document.getElementById('voice-listening');
+        VoiceRecognitionEngine.stop();
+        clearTimeout(this._micAutoCloseTimer);
+        // 버튼 원래 상태로
+        const mIs=document.getElementById('mic-btn-icon');
+        const mLs=document.getElementById('mic-btn-label');
+        if(mIs) mIs.textContent='🎤';
+        if(mLs) mLs.textContent='질문';
+        if(!said){
+          // 인식된 텍스트 없음 → 안내만
+          DialogEngine.show(this.STATE.lang==='ko'?'말씀하신 내용이 없어요. 마이크 버튼을 누르고 말씀해 주세요.':'Nothing detected. Please speak after pressing the mic button.', false);
+          if(vi3) vi3.style.display='none';
+          break;
+        }
+        if(vi3) vi3.style.display='none';
+        // AI에게 전달
+        window.speechSynthesis.cancel();
+        VoiceEngine.stop();
+        clearTimeout(this._autoTimer);
+        DialogEngine.show('🤖 ...', false);
+        AIEngine.ask(said, {mode:'host_qa'}).then(ans=>{
+          if(ans){ DialogEngine.show(ans); }
+        });
+        break;
+      }
+      // ── "마치기" 버튼 — 그냥 닫기
+      case 'voice-cancel':{
+        const vi4=document.getElementById('voice-listening');
+        const vh4=document.getElementById('voice-heard');
+        if(vi4) vi4.style.display='none';
+        if(vh4) vh4.textContent='';
+        VoiceRecognitionEngine.stop();
+        clearTimeout(this._micAutoCloseTimer);
+        const mIc=document.getElementById('mic-btn-icon');
+        const mLc=document.getElementById('mic-btn-label');
+        if(mIc) mIc.textContent='🎤';
+        if(mLc) mLc.textContent='질문';
         break;
       }
       case 'save-api-key':{
