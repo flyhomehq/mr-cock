@@ -54,13 +54,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 #character.show{opacity:1}
 #character.right{left:68%}
 #character.center{left:50%}
-#progress-wrap{position:fixed;bottom:80px;left:0;right:0;height:8px;z-index:100;background:rgba(255,255,255,0.15)}
+#progress-wrap{position:fixed;bottom:80px;left:0;right:0;height:8px;z-index:100;background:rgba(255,255,255,0.15);display:none}
 #progress-bar{height:100%;background:#F5A623;width:0%;transition:width 0.5s}
 #topbar{position:fixed;top:6px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 12px;z-index:90;height:44px}
 .top-btn{background:rgba(20,30,50,0.85);backdrop-filter:blur(10px);border:1.5px solid rgba(255,255,255,0.3);border-radius:20px;color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;padding:6px 14px;cursor:pointer;touch-action:manipulation;user-select:none}
 .top-btn.host{border-color:rgba(245,166,35,0.7);color:#FFD060}
 .top-btn.lounge{background:rgba(245,166,35,0.2);border-color:rgba(245,166,35,0.6);color:#FFD060;font-weight:700}
-#phase-tabs{position:fixed;top:56px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:89;padding:0 8px}
+#phase-tabs{position:fixed;top:56px;left:0;right:0;display:none;justify-content:center;gap:6px;z-index:89;padding:0 8px}
 .phase-tab{background:rgba(20,30,50,0.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.7);font-family:'Noto Sans KR',sans-serif;font-size:11px;font-weight:500;padding:5px 10px;cursor:pointer;touch-action:manipulation;user-select:none;white-space:nowrap}
 .phase-tab.active{background:rgba(245,166,35,0.25);border-color:rgba(245,166,35,0.7);color:#FFD060}
 
@@ -87,7 +87,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 #btn-next{right:6px}
 #btn-prev:active,#btn-next:active{background:rgba(255,255,255,0.15)}
 .arrow-icon{font-size:32px;color:rgba(255,255,255,0.9)}
-#btn-pause{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:101;width:52px;height:52px;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;user-select:none}
+#btn-pause{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:101;width:52px;height:52px;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.3);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;user-select:none}
 #step-bar{position:fixed;bottom:130px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:48;pointer-events:none}
 .sd{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.25);transition:all 0.3s}
 .sd.active{width:20px;border-radius:3px;background:#F5A623}
@@ -207,16 +207,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
   color:rgba(255,255,255,0.5);
 }
 /* 언어 선택 화면 */
-#lang-select{position:fixed;inset:0;z-index:96;background:#050a14;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background-size:cover;background-position:center;transition:background-image 0.8s}
-#lang-select-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:0}
+#lang-select{position:fixed;inset:0;z-index:96;background:#050a14;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background-size:cover;background-position:center;transition:background-image 0.6s ease-in-out}
+#lang-select-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:0}
 #lang-select>*{position:relative;z-index:1}
-.lang-select-btn{background:rgba(255,255,255,0.15)!important;border:2px solid rgba(255,255,255,0.6)!important;backdrop-filter:blur(8px)}
-.lang-select-btn:hover,.lang-select-btn:active{background:rgba(245,166,35,0.35)!important;border-color:#FFD700!important}
+.lang-select-btn{background:rgba(10,20,40,0.75)!important;border:2px solid rgba(255,255,255,0.7)!important;backdrop-filter:blur(12px)}
+.lang-select-btn:hover,.lang-select-btn:active{background:rgba(245,166,35,0.4)!important;border-color:#FFD700!important}
 #lang-select.hidden{display:none}
 .lang-select-btn{background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px 16px;cursor:pointer;text-align:center;touch-action:manipulation;transition:all 0.2s;color:#fff}
 .lang-select-btn:hover,.lang-select-btn:active{background:rgba(245,166,35,0.15);border-color:rgba(245,166,35,0.6)}
 /* 모드 선택 */
-#mode-select{position:fixed;inset:0;z-index:95;background:rgba(4,8,18,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px}
+#mode-select{position:fixed;inset:0;z-index:95;background:rgba(4,8,18,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background-size:cover;background-position:center}
 #mode-select.hidden{display:none}
 .mode-title{font-size:24px;font-weight:700;color:#F5A623;margin-bottom:6px;text-align:center}
 .mode-sub{font-size:14px;color:rgba(255,255,255,0.55);margin-bottom:28px;text-align:center;line-height:1.6}
@@ -372,8 +372,8 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       style="font-size:18px;padding:4px 14px" title="멈춤/계속">⏸</button>
   </div>
 
-  <!-- 마이크 버튼 — 화면 좌측 중앙 고정, 크게 -->
-  <div id="mic-btn-wrap" style="position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:95;display:none">
+  <!-- 마이크 버튼 — 화면 좌측, 이전 버튼 위로 배치 -->
+  <div id="mic-btn-wrap" style="position:fixed;left:0;top:35%;transform:translateY(-50%);z-index:95;display:none">
     <button id="mic-listen-btn" data-action="ask-question"
       style="background:rgba(180,20,20,0.85);border:2px solid rgba(255,80,80,0.8);border-left:none;border-radius:0 16px 16px 0;color:#fff;font-size:28px;padding:18px 14px;cursor:pointer;touch-action:manipulation;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:4px 0 20px rgba(255,50,50,0.3)">
       🎤
@@ -2527,13 +2527,15 @@ const AppController = {
         document.getElementById('lang-select').classList.remove('hidden');
         break;
       // 언어 선택 (최초 화면)
-      case 'select-lang':
-        this._stopSplashBg(); // 슬라이드쇼 중단
+      case 'select-lang':{
         this.pickLang(dataset.lang||'ko');
         document.getElementById('lang-select').classList.add('hidden');
         document.getElementById('mode-select').classList.remove('hidden');
         this._updateModeSelect(dataset.lang||'ko');
+        // 모드 선택 화면 배경 적용
+        this._applyBg('mode-select', this.SPLASH_URLS.mode);
         break;
+      }
       case 'start-beginner':    this.startMode('beginner'); break;
       case 'start-student':     this.startMode('student');  break;
       case 'change-mode':       this.togglePanel('settings',false); this.togglePanel('host',false); this.showModeSelect(); break;
@@ -2642,7 +2644,12 @@ const AppController = {
   startMode(m){
     this._setState('ACTIVE');
     this.STATE.mode=m; this.STATE.phase=0; this.STATE.step=0;
+    this._stopSplashBg();
     document.getElementById('mode-select').classList.add('hidden');
+    // ACTIVE 진입 시 UI 요소 표시
+    document.getElementById('progress-wrap').style.display='block';
+    document.getElementById('btn-pause').style.display='flex';
+    document.getElementById('phase-tabs').style.display='flex';
     this._updateScenes(); this._updateTabs();
     document.getElementById('character').classList.add('show');
     this._showStep();
@@ -3009,49 +3016,34 @@ const AppController = {
     }
   },
 
-  // 첫 화면 배경 슬라이드쇼
-  // 1장은 내장 이미지 (인터넷 없어도 무조건 표시)
-  // 나머지 4장은 Unsplash URL (인터넷 있을 때)
-  _splashTimer: null,
-  _splashIndex: 0,
+  // ════ 배경 사진 URL 설정 ════
+  // 나중에 내 서버가 생기면 URL만 교체하면 됨
+  // 예: 'https://내서버주소/images/lang-bg.jpg'
+  SPLASH_URLS: {
+    lang: 'https://images.unsplash.com/photo-1676680310924-3326ff1ddd4e?w=1400&q=80', // 언어선택: 노란 비행기
+    mode: 'https://images.unsplash.com/photo-1511140276483-30c1217ca449?w=1400&q=80', // 모드선택: 조종석+해안
+  },
 
   _loadSplashBg(){
-    const el = document.getElementById('lang-select');
+    // 언어 선택 화면 배경
+    this._applyBg('lang-select', this.SPLASH_URLS.lang);
+  },
+
+  // 배경 적용 — 내장 이미지 먼저 표시 후 URL 로드 (깜빡임 방지)
+  // 오류 시 내장 이미지로 자동 폴백
+  _applyBg(elId, url){
+    const el = document.getElementById(elId);
     if(!el) return;
-
-    // 슬라이드 목록
-    // 추가/삭제: URL 줄만 수정하면 됨
-    const FALLBACK = `url('${IMAGES.BGOFF}')`;
-    const slides = [
-      'https://images.unsplash.com/photo-1474302771520-7ef4e9e16bb1?w=1400&q=80', // 조종석+해안 뷰
-      'https://images.unsplash.com/photo-1559628233-100c798642d0?w=1400&q=80', // 활주로 소형기
-      'https://images.unsplash.com/photo-1436891620584-47fd0e565afb?w=1400&q=80', // 비행 중 파일럿
-    ];
-
-    // 슬라이드 적용 함수 — 실패 시 내장 이미지로 폴백
-    const applySlide = (index)=>{
-      const url = slides[index % slides.length];
-      const img = new Image();
-      img.onload = ()=>{ el.style.backgroundImage = `url('${url}')`; };
-      img.onerror = ()=>{ el.style.backgroundImage = FALLBACK; };
-      img.src = url;
-    };
-
-    // 첫 번째 슬라이드 즉시 표시 + 내장 이미지 먼저 보여줌 (깜빡임 방지)
-    el.style.backgroundImage = FALLBACK;
-    applySlide(0);
-
-    // 5초마다 다음 슬라이드로 전환
-    this._splashTimer = setInterval(()=>{
-      this._splashIndex = (this._splashIndex + 1) % slides.length;
-      applySlide(this._splashIndex);
-    }, 5000);
+    const FALLBACK = `url('${IMAGES.BGON}')`;
+    el.style.backgroundImage = FALLBACK; // 즉시 내장 사진 표시
+    if(!url) return;
+    const img = new Image();
+    img.onload = ()=>{ el.style.backgroundImage = `url('${url}')`; };
+    img.onerror = ()=>{ el.style.backgroundImage = FALLBACK; };
+    img.src = url;
   },
 
-  _stopSplashBg(){
-    clearInterval(this._splashTimer);
-    this._splashTimer = null;
-  },
+  _stopSplashBg(){ /* 호환성 유지용 */ },
 
   toast(msg, duration=2000){
     const t=document.getElementById('toast');
