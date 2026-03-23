@@ -2730,16 +2730,20 @@ const AppController = {
     const TEXT = {
       ko:{ sub:'학습 모드를 선택하십시오.',
            b_title:'🟡 초보자 모드', b_desc:'비행 지식이 없어도 괜찮습니다.<br>계기 소개부터 차근차근 시작합니다.',
-           s_title:'🔵 훈련생 모드', s_desc:'항공 용어와 체크리스트 중심으로<br>실제 훈련에 가깝게 진행합니다.' },
+           s_title:'🔵 훈련생 모드', s_desc:'항공 용어와 체크리스트 중심으로<br>실제 훈련에 가깝게 진행합니다.',
+           mvp:'🚀 MVP 시연 모드', mvp_tag:'시연용' },
       en:{ sub:'Select your learning mode.',
            b_title:'🟡 Beginner Mode', b_desc:'No flight knowledge needed.<br>Start from instrument basics.',
-           s_title:'🔵 Student Mode', s_desc:'Aviation terms and checklists.<br>Closer to real training.' },
+           s_title:'🔵 Student Mode', s_desc:'Aviation terms and checklists.<br>Closer to real training.',
+           mvp:'🚀 MVP Demo Mode', mvp_tag:'Demo' },
       ja:{ sub:'学習モードを選択してください。',
            b_title:'🟡 初心者モード', b_desc:'飛行知識がなくても大丈夫です。<br>計器の紹介から始めます。',
-           s_title:'🔵 訓練生モード', s_desc:'航空用語とチェックリスト中心。<br>実際の訓練に近い内容です。' },
+           s_title:'🔵 訓練生モード', s_desc:'航空用語とチェックリスト中心。<br>実際の訓練に近い内容です。',
+           mvp:'🚀 MVPデモモード', mvp_tag:'デモ' },
       zh:{ sub:'请选择学习模式。',
            b_title:'🟡 初学者模式', b_desc:'不需要飞行知识。<br>从仪表介绍开始学习。',
-           s_title:'🔵 学员模式', s_desc:'以航空术语和检查单为主。<br>接近实际训练内容。' },
+           s_title:'🔵 学员模式', s_desc:'以航空术语和检查单为主。<br>接近实际训练内容。',
+           mvp:'🚀 MVP演示模式', mvp_tag:'演示' },
     };
     const t = TEXT[lang] || TEXT.ko;
     const ms = document.getElementById('mode-select');
@@ -2755,6 +2759,11 @@ const AppController = {
       btns[1].querySelector('.mode-btn-title').textContent = t.s_title;
       btns[1].querySelector('.mode-btn-desc').innerHTML = t.s_desc;
     }
+    // MVP 시연 버튼 텍스트 업데이트
+    const mvpBtn = ms.querySelector('[data-action="start-pitch"] span:first-of-type');
+    const mvpTag = ms.querySelector('[data-action="start-pitch"] span:last-of-type');
+    if(mvpBtn) mvpBtn.textContent = t.mvp;
+    if(mvpTag) mvpTag.textContent = t.mvp_tag;
   },
 
   showModeSelect(){
@@ -2772,7 +2781,7 @@ const AppController = {
     this.appState = 'MODE_SELECT';
     this.STATE.phase=0; this.STATE.step=0;
     // 모드 선택 화면 표시
-    document.getElementById('mode-select').classList.remove('hidden');
+    document.getElementById('mode-select').classList.add('show');
     // 언어에 맞게 텍스트 업데이트
     this._updateModeSelect(this.STATE.lang||'ko');
   },
