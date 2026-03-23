@@ -383,8 +383,8 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   <div id="mic-btn-wrap" style="position:fixed;left:0;top:35%;transform:translateY(-50%);z-index:95;display:none">
     <button id="mic-listen-btn" data-action="ask-question"
       style="background:rgba(180,20,20,0.85);border:2px solid rgba(255,80,80,0.8);border-left:none;border-radius:0 16px 16px 0;color:#fff;font-size:28px;padding:18px 14px;cursor:pointer;touch-action:manipulation;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:4px 0 20px rgba(255,50,50,0.3)">
-      🎤
-      <span style="font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.9)">질문</span>
+      <span id="mic-btn-icon">🎤</span>
+      <span id="mic-btn-label" style="font-size:10px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.9)">질문</span>
     </button>
   </div>
 
@@ -1042,6 +1042,12 @@ const VoiceEngine = {
 
   play(text){
     if(!this.enabled||!text) return;
+    // 안전장치 — 이전 TTS가 비정상 종료로 _isSpeaking이 굳은 경우 강제 리셋
+    if(this._isSpeaking){
+      window.speechSynthesis.cancel();
+      this._isSpeaking = false;
+      document.getElementById('character')?.classList.remove('speaking');
+    }
     const refined=text
       .replace(/(\d+)번/g,'$1번')
       .replace(/\bft\b/g,'피트')
@@ -1051,29 +1057,54 @@ const VoiceEngine = {
     const u=new SpeechSynthesisUtterance(refined);
     u.lang=this.lang; u.rate=0.92; u.pitch=0.75; u.volume=1;
     const trySpeak=()=>{
-      // 캐시된 음성 즉시 사용 (딜레이 제거)
       const vs = this._voices.length ? this._voices : window.speechSynthesis.getVoices();
       if(!vs.length){ setTimeout(trySpeak,100); return; }
-      // 남성 음성 우선 선택, 없으면 해당 언어 첫 번째
       const langCode = this.lang.split('-')[0];
       const v = vs.find(v=>v.lang===this.lang && v.name.match(/male|man|남성|남자/i))
              || vs.find(v=>v.lang===this.lang)
              || vs.find(v=>v.lang&&v.lang.startsWith(langCode));
       if(v) u.voice=v;
       u.onstart=()=>{
-        // TTS 시작 → 플래그 ON + 음성인식 완전 중단
         VoiceEngine._isSpeaking = true;
+        // 안전장치 — 최대 60초 후 플래그 강제 해제 (onend 미호출 대비)
+        clearTimeout(VoiceEngine._speakSafeTimer);
+        VoiceEngine._speakSafeTimer = setTimeout(()=>{
+          if(VoiceEngine._isSpeaking){
+            VoiceEngine._isSpeaking = false;
+            document.getElementById('character')?.classList.remove('speaking');
+          }
+        }, 60000);
         if(VoiceRecognitionEngine._recog){
-          VoiceRecognitionEngine._recog._dead = true; // onend 재시작 차단
+          VoiceRecognitionEngine._recog._dead = true;
           try{ VoiceRecognitionEngine._recog.abort(); }catch(x){}
         }
         document.getElementById('character')?.classList.add('speaking');
       };
       u.onend=()=>{
-        // TTS 종료 → 플래그 OFF + 음성인식 새로 init (재시작 아닌 새 객체)
+        clearTimeout(VoiceEngine._speakSafeTimer);
         VoiceEngine._isSpeaking = false;
         document.getElementById('character')?.classList.remove('speaking');
-        // TTS 끝난 후 마이크 자동 재시작 없음 — 버튼으로만 인식
+        // AI 답변 TTS 완료 → 소리박스 자동 닫기 + 버튼 원래 상태로
+        const vi = document.getElementById('voice-listening');
+        const vh = document.getElementById('voice-heard');
+        if(vi && vi.style.display==='block'){
+          setTimeout(()=>{
+            vi.style.display='none';
+            if(vh) vh.textContent='';
+            const mI=document.getElementById('mic-btn-icon');
+            const mL=document.getElementById('mic-btn-label');
+            const mB=document.getElementById('mic-listen-btn');
+            if(mI) mI.textContent='🎤';
+            if(mL) mL.textContent='질문';
+            if(mB) mB.style.background='rgba(180,20,20,0.85)';
+          }, 800);
+        }
+      };
+      u.onerror=(e)=>{
+        clearTimeout(VoiceEngine._speakSafeTimer);
+        VoiceEngine._isSpeaking = false;
+        document.getElementById('character')?.classList.remove('speaking');
+        console.warn('[VoiceEngine] TTS 오류:', e.error);
       };
       window.speechSynthesis.speak(u);
     };
@@ -2604,11 +2635,44 @@ const AppController = {
       case 'ask-question':{
         const vi2=document.getElementById('voice-listening');
         const vh2=document.getElementById('voice-heard');
+        // 이미 열려 있으면 → 사용자가 닫으려는 의도 → 닫기
+        if(vi2 && vi2.style.display==='block'){
+          vi2.style.display='none';
+          if(vh2) vh2.textContent='';
+          VoiceRecognitionEngine.stop();
+          clearTimeout(this._micAutoCloseTimer);
+          // 버튼 원래 상태로
+          const micIcon = document.getElementById('mic-btn-icon');
+          const micLabel = document.getElementById('mic-btn-label');
+          const micBtn = document.getElementById('mic-listen-btn');
+          if(micIcon) micIcon.textContent='🎤';
+          if(micLabel) micLabel.textContent='질문';
+          if(micBtn) micBtn.style.background='rgba(180,20,20,0.85)';
+          break;
+        }
+        // 소리박스 열기
         if(vi2) vi2.style.display='block';
         if(vh2) vh2.textContent='';
+        // 버튼 활성 상태 표시
+        const micIconOpen = document.getElementById('mic-btn-icon');
+        const micLabelOpen = document.getElementById('mic-btn-label');
+        const micBtnOpen = document.getElementById('mic-listen-btn');
+        if(micIconOpen) micIconOpen.textContent='🔴';
+        if(micLabelOpen) micLabelOpen.textContent='닫기';
+        if(micBtnOpen) micBtnOpen.style.background='rgba(200,0,0,0.95)';
         DialogEngine.show(this.STATE.lang==='ko'?'질문하세요. 듣고 있습니다.':'Ask your question.', false);
         VoiceRecognitionEngine.listenOnce();
-        setTimeout(()=>{ if(vi2) vi2.style.display='none'; }, 8000);
+        // ⚠️ 자동 닫기 타이머 제거 — 말할 때 & AI 답변 완료 후까지 유지
+        // 닫히는 조건: 1) 사용자가 마이크 버튼 다시 누를 때  2) AI 답변 완료 후
+        // (아래 _process 함수 내 AIEngine.ask 완료 시 닫음)
+        // 단, 무음 30초 경과 시 자동 닫기 (안전장치)
+        clearTimeout(this._micAutoCloseTimer);
+        this._micAutoCloseTimer = setTimeout(()=>{
+          if(vi2 && vi2.style.display==='block'){
+            vi2.style.display='none';
+            if(vh2) vh2.textContent='';
+          }
+        }, 30000);
         break;
       }
       case 'save-api-key':{
