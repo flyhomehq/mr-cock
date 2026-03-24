@@ -454,15 +454,8 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
         ✕ 지우기
       </button>
     </div>
-    <!-- 누적 질문 텍스트 — 탭하면 키보드로 직접 수정 가능 -->
-    <textarea id="voice-heard"
-      placeholder="말씀하시거나 여기를 탭해서 직접 입력하세요"
-      rows="3"
-      style="width:100%;font-size:14px;color:#FFD700;line-height:1.5;min-height:52px;max-height:100px;overflow-y:auto;word-break:break-all;text-align:left;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 8px;margin-bottom:10px;resize:none;outline:none;font-family:inherit;caret-color:#FFD700;box-sizing:border-box"
-      onfocus="if(window.VoiceRecognitionEngine?._recog){VoiceRecognitionEngine._recog._dead=true;try{VoiceRecognitionEngine._recog.stop();}catch(e){}}"
-      onblur="const vi=document.getElementById('voice-listening');if(vi&&vi.style.display==='block'&&!VoiceEngine._isSpeaking){setTimeout(()=>{if(window.VoiceRecognitionEngine)VoiceRecognitionEngine.listenOnce();},300);}"
-      oninput="if(window.VoiceRecognitionEngine?._recog) VoiceRecognitionEngine._recog._accumulated=this.value"
-    ></textarea>
+    <!-- 누적 질문 텍스트 -->
+    <div id="voice-heard" style="font-size:14px;color:#FFD700;line-height:1.5;min-height:36px;max-height:80px;overflow-y:auto;word-break:break-all;text-align:left;background:rgba(255,255,255,0.05);border-radius:8px;padding:6px 8px;margin-bottom:10px"></div>
     <!-- 하단 버튼 -->
     <div style="display:flex;gap:8px;justify-content:center">
       <button data-action="voice-send"
@@ -1619,20 +1612,21 @@ const VoiceRecognitionEngine = {
       const viOpen = vi && vi.style.display==='block';
 
       if(viOpen){
-        // textarea 모드: 키보드 편집 중이면 STT 업데이트 건너뜀
-        if(document.activeElement === vh) return;
+        // 소리박스 열려있는 동안 — 중간결과는 이탤릭으로, 최종은 누적
         if(!isFinal){
+          // 현재 누적텍스트 뒤에 중간결과 미리보기 (이탤릭 표시)
           const prev = r._accumulated || '';
-          if(vh) vh.value = (prev ? prev + ' ' : '') + said + '…';
+          if(vh) vh.innerHTML = (prev ? prev + ' ' : '') + '<i style="color:rgba(255,215,0,0.5)">' + said + '…</i>';
         } else {
           if(said && said !== r._lastFinal){
             r._lastFinal = said;
             r._accumulated = (r._accumulated ? r._accumulated + ' ' : '') + said;
-            if(vh){ vh.value = r._accumulated; vh.scrollTop = vh.scrollHeight; }
+            if(vh) vh.textContent = r._accumulated;
           }
+          // 최종 인식 후 계속 듣기 (onend에서 자동 재시작)
         }
         IntelMonitor?.setLED('voice', isFinal ? false : true);
-        return;
+        return; // 소리박스 모드에서는 _process 호출 안 함
       }
 
       // 소리박스 닫혀있을 때 — 기존 자동처리 흐름
@@ -1664,37 +1658,78 @@ const VoiceRecognitionEngine = {
     };
 
     r.onend=()=>{
-      // 소리박스가 열려있으면 → 계속 듣기 (자동 재시작)
-      const vi = document.getElementById('voice-listening');
-      if(vi && vi.style.display==='block' && !r._dead){
-        setTimeout(()=>{ if(!r._dead) try{ r.start(); }catch(x){} }, 200);
-      }
-      // 소리박스 닫혀있으면 → 재시작 없음
+      // continuous:false 모드 전용 — 소리박스 닫혀있으면 재시작 없음
+      // 소리박스 모드는 _startContinuous(continuous:true)가 담당
     };
 
     this._recog=r;
   },
 
-  // 마이크 버튼 눌렀을 때 인식 시작 (TTS 중이면 강제 중단)
-  listenOnce(){
-    // TTS 재생 중이면 즉시 중단 — 사용자가 끼어드는 것이 우선
+  // 마이크 버튼 눌렀을 때 인식 시작
+  // boxMode=true: 소리박스 열려있을 때 → continuous:true (딩동 없음)
+  // boxMode=false: 일반 모드 → continuous:false (한 문장)
+  listenOnce(boxMode){
     if(VoiceEngine._isSpeaking){
       window.speechSynthesis.cancel();
       VoiceEngine._isSpeaking = false;
       clearTimeout(VoiceEngine._maxTimer);
       document.getElementById('character')?.classList.remove('speaking');
     }
-    // _recog가 없거나 _dead 상태면 새로 init
+    // 소리박스 모드면 continuous:true 로 새 인식기 생성
+    if(boxMode){
+      this._startContinuous(this._lang);
+      return;
+    }
     if(!this._recog || this._recog._dead){
       this.init(this._lang);
       setTimeout(()=>{ if(this._recog && !this._recog._dead) try{ this._recog.start(); }catch(x){} }, 450);
       return;
     }
     try{ this._recog.start(); }catch(x){
-      // 이미 실행 중 오류 → 재시작
       try{ this._recog.stop(); }catch(e){}
       setTimeout(()=>{ try{ if(this._recog) this._recog.start(); }catch(e2){} }, 300);
     }
+  },
+
+  // 소리박스 전용 — continuous:true, 딩동 없음
+  _startContinuous(lang){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR) return;
+    // 이전 인식기 정리
+    if(this._recog){
+      this._recog._dead=true;
+      this._recog.onresult=null; this._recog.onerror=null; this._recog.onend=null;
+      try{ this._recog.stop(); }catch(e){}
+      this._recog=null;
+    }
+    setTimeout(()=>{
+      const r=new SR();
+      r.lang=lang; r.continuous=true; r.interimResults=true; r._dead=false;
+      r._lastFinal=''; r._accumulated='';
+      r.onresult=e=>{
+        const result=e.results[e.results.length-1];
+        const said=result[0].transcript.trim();
+        const isFinal=result.isFinal;
+        const vh=document.getElementById('voice-heard');
+        if(!vh) return;
+        // 키보드 편집 중이면 덮어쓰지 않음
+        if(document.activeElement===vh) return;
+        if(!isFinal){
+          vh.value=(r._accumulated?r._accumulated+' ':'')+said+'…';
+        } else {
+          if(said && said!==r._lastFinal){
+            r._lastFinal=said;
+            r._accumulated=(r._accumulated?r._accumulated+' ':'')+said;
+            vh.value=r._accumulated;
+            vh.scrollTop=vh.scrollHeight;
+          }
+        }
+      };
+      r.onerror=(e)=>{ if(e.error==='aborted'||e.error==='no-speech') return; };
+      r.onend=()=>{ /* continuous:true라 onend 거의 안 불림 */ };
+      this._recog=r;
+      try{ r.start(); }catch(x){}
+    }, 300);
   },
 
   setLang(lang){ this.init(lang); },
@@ -2681,7 +2716,7 @@ const AppController = {
           document.getElementById('character')?.classList.remove('speaking');
         }
         DialogEngine.show(this.STATE.lang==='ko'?'듣고 있어요. 다 말하면 [AI에게 물어보기]를 누르세요.':'Listening. Tap [Ask AI] when done.', false);
-        VoiceRecognitionEngine.listenOnce();
+        VoiceRecognitionEngine.listenOnce(true);
         // 마이크 버튼 → 활성 상태
         const mI2=document.getElementById('mic-btn-icon');
         const mL2=document.getElementById('mic-btn-label');
@@ -2704,9 +2739,9 @@ const AppController = {
       case 'voice-send':{
         const vh3=document.getElementById('voice-heard');
         const vi3=document.getElementById('voice-listening');
-        // textarea 직접입력값 우선, 없으면 누적텍스트
-        const accum=(vh3?.value||vh3?.textContent||'').replace(/["""]/g,'').trim()
-                  ||(VoiceRecognitionEngine._recog?._accumulated||'').trim();
+        // 누적된 텍스트 사용
+        const accum=(VoiceRecognitionEngine._recog?._accumulated||'').trim()
+                  ||(vh3?.textContent||'').replace(/["""]/g,'').trim();
         VoiceRecognitionEngine.stop();
         if(VoiceRecognitionEngine._recog) VoiceRecognitionEngine._recog._accumulated='';
         clearTimeout(this._micAutoCloseTimer);
@@ -2719,7 +2754,7 @@ const AppController = {
           break;
         }
         if(vi3) vi3.style.display='none';
-        if(vh3){ vh3.value=''; vh3.textContent=''; }
+        if(vh3) vh3.textContent='';
         window.speechSynthesis.cancel();
         VoiceEngine._isSpeaking=false;
         clearTimeout(this._autoTimer);
@@ -2732,7 +2767,7 @@ const AppController = {
         const vi4=document.getElementById('voice-listening');
         const vh4=document.getElementById('voice-heard');
         if(vi4) vi4.style.display='none';
-        if(vh4){ vh4.value=''; vh4.textContent=''; }
+        if(vh4) vh4.textContent='';
         if(VoiceRecognitionEngine._recog) VoiceRecognitionEngine._recog._accumulated='';
         VoiceRecognitionEngine.stop();
         clearTimeout(this._micAutoCloseTimer);
@@ -2744,7 +2779,7 @@ const AppController = {
       // ── 지우기 ──
       case 'voice-clear':{
         const vh5=document.getElementById('voice-heard');
-        if(vh5){ vh5.value=''; vh5.textContent=''; }
+        if(vh5) vh5.textContent='';
         if(VoiceRecognitionEngine._recog) VoiceRecognitionEngine._recog._accumulated='';
         // 마이크 계속 열린 상태 유지
         break;
