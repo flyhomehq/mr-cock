@@ -454,8 +454,13 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
         ✕ 지우기
       </button>
     </div>
-    <!-- 누적 질문 텍스트 -->
-    <div id="voice-heard" style="font-size:14px;color:#FFD700;line-height:1.5;min-height:36px;max-height:80px;overflow-y:auto;word-break:break-all;text-align:left;background:rgba(255,255,255,0.05);border-radius:8px;padding:6px 8px;margin-bottom:10px"></div>
+    <!-- 누적 질문 텍스트 — 탭하면 키보드로 직접 수정 가능 -->
+    <textarea id="voice-heard"
+      placeholder="말씀하시거나 여기를 탭해서 직접 입력하세요"
+      rows="3"
+      style="width:100%;font-size:14px;color:#FFD700;line-height:1.5;min-height:52px;max-height:100px;overflow-y:auto;word-break:break-all;text-align:left;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 8px;margin-bottom:10px;resize:none;outline:none;font-family:inherit;caret-color:#FFD700;box-sizing:border-box"
+      oninput="if(window.VoiceRecognitionEngine?._recog) VoiceRecognitionEngine._recog._accumulated=this.value"
+    ></textarea>
     <!-- 하단 버튼 -->
     <div style="display:flex;gap:8px;justify-content:center">
       <button data-action="voice-send"
@@ -1612,18 +1617,17 @@ const VoiceRecognitionEngine = {
       const viOpen = vi && vi.style.display==='block';
 
       if(viOpen){
-        // 소리박스 열려있는 동안 — 중간결과는 이탤릭으로, 최종은 누적
+        // 소리박스 열려있는 동안 — textarea에 업데이트
         if(!isFinal){
-          // 현재 누적텍스트 뒤에 중간결과 미리보기 (이탤릭 표시)
+          // 중간결과: 누적텍스트 + 미리보기 (textarea는 plain text만)
           const prev = r._accumulated || '';
-          if(vh) vh.innerHTML = (prev ? prev + ' ' : '') + '<i style="color:rgba(255,215,0,0.5)">' + said + '…</i>';
+          if(vh) vh.value = (prev ? prev + ' ' : '') + said + '…';
         } else {
           if(said && said !== r._lastFinal){
             r._lastFinal = said;
             r._accumulated = (r._accumulated ? r._accumulated + ' ' : '') + said;
-            if(vh) vh.textContent = r._accumulated;
+            if(vh){ vh.value = r._accumulated; vh.scrollTop = vh.scrollHeight; }
           }
-          // 최종 인식 후 계속 듣기 (onend에서 자동 재시작)
         }
         IntelMonitor?.setLED('voice', isFinal ? false : true);
         return; // 소리박스 모드에서는 _process 호출 안 함
@@ -2698,9 +2702,9 @@ const AppController = {
       case 'voice-send':{
         const vh3=document.getElementById('voice-heard');
         const vi3=document.getElementById('voice-listening');
-        // 누적된 텍스트 사용
-        const accum=(VoiceRecognitionEngine._recog?._accumulated||'').trim()
-                  ||(vh3?.textContent||'').replace(/["""]/g,'').trim();
+        // textarea 직접 입력값 우선, 없으면 누적 텍스트
+        const accum=(vh3?.value||vh3?.textContent||'').replace(/["""]/g,'').trim()
+                  ||(VoiceRecognitionEngine._recog?._accumulated||'').trim();
         VoiceRecognitionEngine.stop();
         if(VoiceRecognitionEngine._recog) VoiceRecognitionEngine._recog._accumulated='';
         clearTimeout(this._micAutoCloseTimer);
@@ -2713,7 +2717,7 @@ const AppController = {
           break;
         }
         if(vi3) vi3.style.display='none';
-        if(vh3) vh3.textContent='';
+        if(vh3){ vh3.value=''; vh3.textContent=''; }
         window.speechSynthesis.cancel();
         VoiceEngine._isSpeaking=false;
         clearTimeout(this._autoTimer);
@@ -2726,7 +2730,7 @@ const AppController = {
         const vi4=document.getElementById('voice-listening');
         const vh4=document.getElementById('voice-heard');
         if(vi4) vi4.style.display='none';
-        if(vh4) vh4.textContent='';
+        if(vh4){ vh4.value=''; vh4.textContent=''; }
         if(VoiceRecognitionEngine._recog) VoiceRecognitionEngine._recog._accumulated='';
         VoiceRecognitionEngine.stop();
         clearTimeout(this._micAutoCloseTimer);
@@ -2738,7 +2742,7 @@ const AppController = {
       // ── 지우기 ──
       case 'voice-clear':{
         const vh5=document.getElementById('voice-heard');
-        if(vh5) vh5.textContent='';
+        if(vh5){ vh5.value=''; vh5.textContent=''; vh5.focus(); }
         if(VoiceRecognitionEngine._recog) VoiceRecognitionEngine._recog._accumulated='';
         // 마이크 계속 열린 상태 유지
         break;
