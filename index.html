@@ -176,11 +176,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 }
 #pause-overlay.show{display:flex}
 #pause-main-text{
-  font-size:clamp(48px,10vw,96px);
+  font-size:clamp(24px,5vw,48px);
   font-weight:900;
   color:#FFD700;
-  text-shadow:0 0 40px rgba(255,215,0,0.6);
-  letter-spacing:4px;
+  text-shadow:0 0 20px rgba(255,215,0,0.6);
+  letter-spacing:3px;
   animation:pausePulse 1.5s ease-in-out infinite;
 }
 @keyframes pausePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.7;transform:scale(0.97)}}
@@ -202,8 +202,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 }
 .pgc .em{font-size:clamp(24px,5vw,36px);display:block;margin-bottom:6px}
 #pause-resume-hint{
-  margin-top:24px;
-  font-size:clamp(13px,2.5vw,16px);
+  margin-top:16px;
+  font-size:clamp(11px,2vw,14px);
   color:rgba(255,255,255,0.5);
 }
 /* 언어 선택 화면 */
@@ -289,9 +289,9 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
 
   <!-- ════ 멈춤 전체화면 오버레이 ════ -->
   <div id="pause-overlay" data-action="toggle-pause">
-    <div id="pause-main-text">⏸ PAUSED</div>
-    <div id="pause-resume-hint" style="margin-top:32px;font-size:clamp(20px,4vw,32px);font-weight:700;color:#FFD700;background:rgba(245,166,35,0.2);border:2px solid rgba(245,166,35,0.6);border-radius:20px;padding:16px 40px;letter-spacing:2px">
-      ▶ 화면 터치 → 계속
+    <div id="pause-main-text">✊ PAUSED</div>
+    <div id="pause-resume-hint" style="margin-top:18px;font-size:clamp(14px,3vw,20px);font-weight:700;color:#FFD700;background:rgba(245,166,35,0.15);border:1.5px solid rgba(245,166,35,0.5);border-radius:16px;padding:10px 28px;letter-spacing:1px">
+      ✌️ 가위 또는 화면 터치 → 계속
     </div>
   </div>
 
@@ -1508,9 +1508,8 @@ const GestureEngine = {
         setTimeout(()=>AppController.advance(), 500);
         break;
       case 'Closed_Fist':
-        // 주먹 → 일시정지
-        this._showGesture('✊ 일시정지');
-        setTimeout(()=>AppController.togglePause(), 500);
+        // 주먹 → 멈춤/재개 토글 (PAUSED 오버레이가 안내하므로 제스처 표시 생략)
+        setTimeout(()=>AppController.togglePause(), 300);
         break;
       case 'Thumb_Up':
         // 엄지 올리기 → 이해했어요
@@ -1523,9 +1522,14 @@ const GestureEngine = {
         setTimeout(()=>AppController.goBack(), 500);
         break;
       case 'Victory':
-        // V자 → 계속 진행
-        this._showGesture('✌️ 계속!');
-        setTimeout(()=>AppController.advance(), 500);
+        // 가위 → 멈춤이면 재개, 진행 중이면 다음
+        if(AppController.STATE.paused){
+          this._showGesture('✌️ 계속!');
+          setTimeout(()=>AppController.togglePause(), 300);
+        } else {
+          this._showGesture('✌️ 다음!');
+          setTimeout(()=>AppController.advance(), 500);
+        }
         break;
       case 'ILoveYou':
         // 손가락 3개(하트) → 처음으로
@@ -3281,23 +3285,24 @@ const AppController = {
     const overlay = document.getElementById('pause-overlay');
     const dialogBtn = document.getElementById('dialog-pause-btn');
     if(this.STATE.paused){
-      // TTS 일시정지 (cancel 대신 pause — 재개 가능)
-      window.speechSynthesis.pause();
+      // 현재 자막 텍스트 저장
+      this._pausedText = document.getElementById('dcontent')?.textContent || '';
+      // TTS + 자막 완전 중단
+      window.speechSynthesis.cancel();
       VoiceEngine._isSpeaking = false;
-      // 자막 타이머도 멈춤
       clearInterval(DialogEngine._timer);
       clearTimeout(this._autoTimer);
       if(overlay) overlay.classList.add('show');
       if(dialogBtn) dialogBtn.textContent='▶';
-      this.toast('⏸ 멈춤');
     } else {
       clearTimeout(this._autoTimer);
       if(overlay) overlay.classList.remove('show');
       if(dialogBtn) dialogBtn.textContent='⏸';
-      // TTS 재개
-      window.speechSynthesis.resume();
-      VoiceEngine._isSpeaking = window.speechSynthesis.speaking;
-      this.toast('▶ 계속');
+      // 저장된 텍스트로 TTS + 자막 재시작
+      if(this._pausedText){
+        DialogEngine.show(this._pausedText);
+        this._pausedText = '';
+      }
     }
   },
 
