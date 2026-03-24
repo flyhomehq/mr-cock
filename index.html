@@ -927,7 +927,12 @@ const App = {
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method:'POST',
-        headers:{'Content-Type':'application/json','x-api-key':this.apiKey,'anthropic-version':'2023-06-01'},
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key':this.apiKey,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true',
+        },
         body: JSON.stringify({
           model:'claude-haiku-4-5-20251001',
           max_tokens:300,
@@ -935,6 +940,13 @@ const App = {
           messages:[{role:'user',content:prompt}]
         })
       });
+      if(!res.ok){
+        const err = await res.json();
+        const msg = err?.error?.message || 'HTTP '+res.status;
+        this._say('AI 오류: ' + msg);
+        document.getElementById('character').src = IMGS.charNeutral;
+        return;
+      }
       const data = await res.json();
       const ans = data.content?.[0]?.text || '죄송합니다, 답변을 가져오지 못했습니다.';
       document.getElementById('character').src = IMGS.charHappy;
