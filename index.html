@@ -1534,14 +1534,46 @@ const GestureEngine = {
   handleHandRaised(){
     const lang = AppController.STATE.lang || 'ko';
     const msg = {
-      ko: '질문이 있으시군요! 마이크 버튼을 누르고 말씀하시거나, 계기 번호를 탭하세요.',
-      en: 'You have a question! Press the mic button and speak, or tap an instrument number.',
-      ja: 'ご質問ですね！マイクを押して話すか、計器番号をタップしてください。',
-      zh: '您有问题！请按麦克风说话，或点击仪表编号。',
+      ko: '질문이 있으시군요! 말씀하시거나 계기 번호를 탭하세요.',
+      en: 'You have a question! Speak or tap an instrument number.',
+      ja: 'ご質問ですね！話すか計器番号をタップしてください。',
+      zh: '您有问题！请说话或点击仪表编号。',
     };
-    this._showGesture('✋ 질문!');
-    // 노란 안내 오버레이 표시
-    AppController._showQuestionGuide();
+    // 1. TTS 멈춤 + 자동 일시정지 (PAUSED 오버레이는 숨김)
+    if(!AppController.STATE.paused){
+      AppController.STATE.paused = true;
+      AppController._setState('PAUSED');
+      AppController._pausedText = document.getElementById('dcontent')?.textContent || '';
+      window.speechSynthesis.cancel();
+      VoiceEngine._isSpeaking = false;
+      clearInterval(DialogEngine._timer);
+      clearTimeout(AppController._autoTimer);
+      // PAUSED 오버레이 숨김 (질문 모드에서는 불필요)
+      document.getElementById('pause-overlay')?.classList.remove('show');
+      document.getElementById('dialog-pause-btn').textContent='▶';
+    }
+    // 2. 제스처 안내 (유지 — 다음 동작까지)
+    this._showGesture('🖐 질문 모드');
+    // 3. 노란 질문 안내 표시 (유지)
+    AppController._showQuestionGuide(true);
+    // 4. 마이크 소리박스 자동 열기
+    setTimeout(()=>{
+      const vi=document.getElementById('voice-listening');
+      const vh=document.getElementById('voice-heard');
+      if(vi && vi.style.display!=='block'){
+        if(vi) vi.style.display='block';
+        if(vh){ vh.value=''; vh.textContent=''; }
+        if(VoiceRecognitionEngine._recog) VoiceRecognitionEngine._recog._accumulated='';
+        VoiceRecognitionEngine._boxAccum='';
+        VoiceRecognitionEngine.listenOnce(true);
+        const mI=document.getElementById('mic-btn-icon');
+        const mL=document.getElementById('mic-btn-label');
+        if(mI) mI.textContent='🔴';
+        const doneT={ko:'마치기',en:'Done',ja:'終了',zh:'完成'};
+        if(mL) mL.textContent=doneT[lang]||'마치기';
+      }
+    }, 300);
+    // 5. 음성 안내
     VoiceEngine.play(msg[lang]||msg.ko);
   },
 
@@ -3297,25 +3329,35 @@ const AppController = {
     }
   },
 
-  _showQuestionGuide(){
+  _showQuestionGuide(persist=false){
     // 기존 안내 제거
     document.getElementById('question-guide-overlay')?.remove();
     const lang = this.STATE.lang || 'ko';
     const lines = {
-      ko: ['🎤 마이크 버튼 → 말하기', '🔢 계기 번호 탭', '⌨ 질문창에 직접 입력'],
-      en: ['🎤 Mic button → Speak', '🔢 Tap instrument number', '⌨ Type in question box'],
-      ja: ['🎤 マイクボタン → 話す', '🔢 計器番号タップ', '⌨ 質問欄に入力'],
-      zh: ['🎤 麦克风 → 说话', '🔢 点击仪表编号', '⌨ 在问题框输入'],
+      ko: ['🎤 말하기', '🔢 계기 번호 탭', '⌨ 직접 입력'],
+      en: ['🎤 Speak', '🔢 Tap number', '⌨ Type'],
+      ja: ['🎤 話す', '🔢 番号タップ', '⌨ 入力'],
+      zh: ['🎤 说话', '🔢 点击编号', '⌨ 输入'],
     };
     const t = lines[lang]||lines.ko;
     const el = document.createElement('div');
     el.id = 'question-guide-overlay';
-    el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:75;background:rgba(245,166,35,0.95);border-radius:20px;padding:18px 28px;text-align:center;pointer-events:none;min-width:240px';
-    el.innerHTML = `<div style="font-size:16px;font-weight:800;color:#1a0a00;margin-bottom:10px">✋ 질문 방법</div>`
-      + t.map(s=>`<div style="font-size:14px;color:#2a1000;font-weight:600;margin:4px 0">${s}</div>`).join('')
-      + `<div style="font-size:11px;color:rgba(0,0,0,0.4);margin-top:8px">3초 후 사라집니다</div>`;
+    el.style.cssText = 'position:fixed;top:42%;left:50%;transform:translate(-50%,-50%);z-index:75;background:rgba(245,166,35,0.95);border-radius:16px;padding:14px 22px;text-align:center;pointer-events:none;min-width:200px';
+    el.innerHTML = `<div style="font-size:15px;font-weight:800;color:#1a0a00;margin-bottom:8px">🖐 질문 방법</div>`
+      + t.map(s=>`<div style="font-size:13px;color:#2a1000;font-weight:600;margin:3px 0">${s}</div>`).join('');
     document.getElementById('app').appendChild(el);
-    setTimeout(()=>el.remove(), 3000);
+    // persist=true면 마이크창 닫힐 때까지 유지
+    if(!persist){
+      setTimeout(()=>el.remove(), 3000);
+    } else {
+      // 마이크창 닫히면 자동 제거
+      const _check = setInterval(()=>{
+        const vi=document.getElementById('voice-listening');
+        if(!vi || vi.style.display!=='block'){
+          el.remove(); clearInterval(_check);
+        }
+      }, 500);
+    }
   },
 
   _showComplete(){
