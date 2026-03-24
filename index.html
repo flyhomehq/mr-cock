@@ -543,6 +543,15 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
           </div>
         </div>
       </div>
+      <!-- 제스처 설정 -->
+      <div class="acc-section" id="acc-gesture">
+        <div class="acc-header" data-action="toggle-acc" data-acc="acc-gesture"><span class="acc-title">✋ 제스처 인식</span><span style="display:flex;align-items:center;gap:6px"><span class="acc-current" id="cur-gesture">켜짐</span><span class="acc-arrow">▾</span></span></div>
+        <div class="acc-body">
+          <div class="sel-card picked" id="gesture-on" data-action="gesture-on"><div class="sel-radio"><div class="sel-dot"></div></div><div class="sel-name">켜짐 (주먹/보자기/가위)</div></div>
+          <div class="sel-card" id="gesture-off" data-action="gesture-off"><div class="sel-radio"><div class="sel-dot"></div></div><div class="sel-name">꺼짐 (CPU 절약)</div></div>
+        </div>
+      </div>
+
       <div style="margin-top:12px;padding:12px;background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.3);border-radius:12px;cursor:pointer;touch-action:manipulation" data-action="change-mode">
         <div style="font-size:14px;font-weight:600;color:#F5A623;margin-bottom:2px">✈ 학습 모드 변경</div>
         <div style="font-size:12px;color:rgba(255,255,255,0.4)">초보자 / 훈련생 모드</div>
@@ -1395,6 +1404,7 @@ const CameraEngine = {
    v1.1: MediaPipe Hands 연결
    ──────────────────────────────────── */
 const GestureEngine = {
+  _enabled: true,
   _callbacks: {},
   _recognizer: null,
   _running: false,
@@ -1479,6 +1489,7 @@ const GestureEngine = {
       return;
     }
     const gesture = result.gestures[0][0];
+    if(!this._enabled) return; // 제스처 꺼짐
     const name = gesture.categoryName;   // Open_Palm, Pointing_Up 등
     const score = gesture.score;
     if(score < 0.60) return; // 신뢰도 60% 미만 무시 (어두운 환경 대응)
@@ -1518,11 +1529,9 @@ const GestureEngine = {
         // 엄지 아래 — 비활성화 (나중에 활성화)
         break;
       case 'Victory':
-        // ✌️ 가위 → 재개만 (멈춤 중일 때만)
-        if(AppController.STATE.paused){
-          this._showGesture('✌️ 계속!');
-          setTimeout(()=>AppController.togglePause(), 300);
-        }
+        // ✌️ 가위 → 전체 초기화 (모든 상태 원상복귀)
+        AppController._resetAll();
+        this._showGesture('✌️ 초기화!');
         break;
       case 'ILoveYou':
         // 하트 — 비활성화 (나중에 활성화)
@@ -3008,6 +3017,22 @@ const AppController = {
         VoiceRecognitionEngine.init(this._getLangCode());
         this.toast('🎤 마이크 켜짐');
         break;
+      case 'gesture-on':
+        this.STATE.gestureEnabled = true;
+        document.getElementById('gesture-on')?.classList.add('picked');
+        document.getElementById('gesture-off')?.classList.remove('picked');
+        document.getElementById('cur-gesture').textContent = '켜짐';
+        GestureEngine._enabled = true;
+        this.toast('✋ 제스처 인식 켜짐');
+        break;
+      case 'gesture-off':
+        this.STATE.gestureEnabled = false;
+        document.getElementById('gesture-on')?.classList.remove('picked');
+        document.getElementById('gesture-off')?.classList.add('picked');
+        document.getElementById('cur-gesture').textContent = '꺼짐';
+        GestureEngine._enabled = false;
+        this.toast('✋ 제스처 인식 꺼짐');
+        break;
       case 'mic-off':
         this.STATE.micEnabled = false;
         document.getElementById('mic-on')?.classList.remove('picked');
@@ -3329,6 +3354,27 @@ const AppController = {
     }
   },
 
+  _resetAll(){
+    // 멈춤 해제
+    if(this.STATE.paused){
+      this.STATE.paused = false;
+      this._setState('ACTIVE');
+      document.getElementById('pause-overlay')?.classList.remove('show');
+      document.getElementById('dialog-pause-btn').textContent='⏸';
+      // 저장된 텍스트로 재개
+      if(this._pausedText){
+        DialogEngine.show(this._pausedText);
+        this._pausedText = '';
+      }
+    }
+    // 마이크창 닫기
+    this._closeMicBox();
+    // 질문 안내 오버레이 제거
+    document.getElementById('question-guide-overlay')?.remove();
+    // 제스처 안내 제거
+    GestureEngine._hideGesture();
+  },
+
   _showQuestionGuide(persist=false){
     // 기존 안내 제거
     document.getElementById('question-guide-overlay')?.remove();
@@ -3474,9 +3520,14 @@ const AppController = {
       this._closeMicBox();
       // API 키 상태 표시 업데이트
       AIEngine._updateKeyStatus();
+      // TTS 완전 중단 (두 번 호출로 확실히)
       window.speechSynthesis.cancel();
+      setTimeout(()=>window.speechSynthesis.cancel(), 100);
+      VoiceEngine._isSpeaking = false;
+      clearTimeout(VoiceEngine._maxTimer);
       VoiceEngine.stop();
       clearTimeout(this._autoTimer);
+      clearInterval(DialogEngine._timer);
       // 패널 열릴 때 일시정지 상태로
       if(this.appState === 'ACTIVE'){
         this.STATE.paused = true;
