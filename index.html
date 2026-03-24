@@ -89,7 +89,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'No
 #btn-prev:active,#btn-next:active{background:rgba(255,255,255,0.15)}
 .arrow-icon{font-size:32px;color:rgba(255,255,255,0.9)}
 /* btn-pause 제거 — topbar ⏸ 버튼으로 통합 */
-#step-bar{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:48;pointer-events:none}
+#step-bar{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:60;pointer-events:none}
 .sd{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.3);transition:all 0.3s}
 .sd.active{width:32px;border-radius:6px;background:#F5A623;box-shadow:0 0 10px rgba(245,166,35,0.7)}
 .sd.done{background:rgba(245,166,35,0.55)}
@@ -1228,15 +1228,19 @@ const DialogEngine = {
   _timer: null,
 
   show(text, speak=true){
-    // pip 오버레이는 AI 답변일 때만 표시 (일반 멘트 제외)
-    // AIEngine.ask() 결과만 표시하도록 IntelMonitor는 직접 호출
     clearInterval(this._timer);
     const el=document.getElementById('dcontent');
+    if(!el) return;
     el.textContent=''; let i=0;
+    // TTS와 자막 싱크: 한국어 약 5글자/초(rate:0.92), 영어 약 12글자/초
+    // 글자당 ms = 1000 / 글자수 * 예상재생시간
+    // 간단히: 한국어 180ms/글자, 영어 80ms/글자 기준
+    const lang = AppController?.STATE?.lang || 'ko';
+    const msPerChar = (lang==='ko'||lang==='ja'||lang==='zh') ? 130 : 70;
     this._timer=setInterval(()=>{
       if(i<text.length){el.textContent+=text[i++];}
       else clearInterval(this._timer);
-    },20);
+    }, msPerChar);
     if(speak) VoiceEngine.play(text);
   },
 
@@ -1533,12 +1537,17 @@ const GestureEngine = {
 
   // 손들기 핸들러
   handleHandRaised(){
-    this._showGesture('✋ 질문 있으시군요!');
-    VoiceEngine.play(
-      AppController.STATE.lang==='ko'
-        ? '질문이 있으시군요. 어떤 계기가 궁금하신가요? 번호를 말씀해 주세요.'
-        : 'You have a question! Please say the instrument number.'
-    );
+    const lang = AppController.STATE.lang || 'ko';
+    const msg = {
+      ko: '질문이 있으시군요! 마이크 버튼을 누르고 말씀하시거나, 계기 번호를 탭하세요.',
+      en: 'You have a question! Press the mic button and speak, or tap an instrument number.',
+      ja: 'ご質問ですね！マイクを押して話すか、計器番号をタップしてください。',
+      zh: '您有问题！请按麦克风说话，或点击仪表编号。',
+    };
+    this._showGesture('✋ 질문!');
+    // 노란 안내 오버레이 표시
+    AppController._showQuestionGuide();
+    VoiceEngine.play(msg[lang]||msg.ko);
   },
 
   handleBothHandsRaised(){ AppController.togglePause(); this._showGesture('✋✋ 일시정지'); },
@@ -3272,8 +3281,11 @@ const AppController = {
     const overlay = document.getElementById('pause-overlay');
     const dialogBtn = document.getElementById('dialog-pause-btn');
     if(this.STATE.paused){
-      window.speechSynthesis.cancel();
-      VoiceEngine.stop();
+      // TTS 일시정지 (cancel 대신 pause — 재개 가능)
+      window.speechSynthesis.pause();
+      VoiceEngine._isSpeaking = false;
+      // 자막 타이머도 멈춤
+      clearInterval(DialogEngine._timer);
       clearTimeout(this._autoTimer);
       if(overlay) overlay.classList.add('show');
       if(dialogBtn) dialogBtn.textContent='▶';
@@ -3282,8 +3294,32 @@ const AppController = {
       clearTimeout(this._autoTimer);
       if(overlay) overlay.classList.remove('show');
       if(dialogBtn) dialogBtn.textContent='⏸';
+      // TTS 재개
+      window.speechSynthesis.resume();
+      VoiceEngine._isSpeaking = window.speechSynthesis.speaking;
       this.toast('▶ 계속');
     }
+  },
+
+  _showQuestionGuide(){
+    // 기존 안내 제거
+    document.getElementById('question-guide-overlay')?.remove();
+    const lang = this.STATE.lang || 'ko';
+    const lines = {
+      ko: ['🎤 마이크 버튼 → 말하기', '🔢 계기 번호 탭', '⌨ 질문창에 직접 입력'],
+      en: ['🎤 Mic button → Speak', '🔢 Tap instrument number', '⌨ Type in question box'],
+      ja: ['🎤 マイクボタン → 話す', '🔢 計器番号タップ', '⌨ 質問欄に入力'],
+      zh: ['🎤 麦克风 → 说话', '🔢 点击仪表编号', '⌨ 在问题框输入'],
+    };
+    const t = lines[lang]||lines.ko;
+    const el = document.createElement('div');
+    el.id = 'question-guide-overlay';
+    el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:75;background:rgba(245,166,35,0.95);border-radius:20px;padding:18px 28px;text-align:center;pointer-events:none;min-width:240px';
+    el.innerHTML = `<div style="font-size:16px;font-weight:800;color:#1a0a00;margin-bottom:10px">✋ 질문 방법</div>`
+      + t.map(s=>`<div style="font-size:14px;color:#2a1000;font-weight:600;margin:4px 0">${s}</div>`).join('')
+      + `<div style="font-size:11px;color:rgba(0,0,0,0.4);margin-top:8px">3초 후 사라집니다</div>`;
+    document.getElementById('app').appendChild(el);
+    setTimeout(()=>el.remove(), 3000);
   },
 
   _showComplete(){
