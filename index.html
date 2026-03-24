@@ -2500,11 +2500,32 @@ const AppController = {
     return true;
   },
 
+  // 소리박스 강제 닫기 헬퍼
+  _closeMicBox(){
+    const vi=document.getElementById('voice-listening');
+    const vh=document.getElementById('voice-heard');
+    if(vi) vi.style.display='none';
+    if(vh){ vh.value=''; vh.textContent=''; }
+    if(VoiceRecognitionEngine._recog) VoiceRecognitionEngine._recog._accumulated='';
+    VoiceRecognitionEngine._boxAccum='';
+    VoiceRecognitionEngine.stop();
+    clearTimeout(this._micAutoCloseTimer);
+    const mI=document.getElementById('mic-btn-icon');
+    const mL=document.getElementById('mic-btn-label');
+    if(mI) mI.textContent='🎤';
+    if(mL){ const t={ko:'질문',en:'Ask',ja:'質問',zh:'提问'}; mL.textContent=t[this.STATE.lang]||'질문'; }
+  },
+
   // 상태 변경 시 UI 자동 전환
   _onStateChange(state){
     const langSelect  = document.getElementById('lang-select');
     const modeSelect  = document.getElementById('mode-select');
     const micWrap     = document.getElementById('mic-btn-wrap');
+
+    // LANG_SELECT / MODE_SELECT 전환 시 소리박스 항상 닫기
+    if(state==='LANG_SELECT'||state==='MODE_SELECT'){
+      this._closeMicBox();
+    }
 
     // 언어 선택 화면
     if(state==='LANG_SELECT'){
@@ -2517,7 +2538,6 @@ const AppController = {
       langSelect?.classList.add('hidden');
       modeSelect?.classList.add('show');
       if(micWrap) micWrap.style.display='none';
-      // 모드선택 배경 적용
       this._applyBg('mode-select', this.SPLASH_URLS.mode);
     }
     // 학습/일시정지 화면
@@ -2712,7 +2732,7 @@ const AppController = {
           clearTimeout(this._micAutoCloseTimer);
           const mI=document.getElementById('mic-btn-icon');
           const mL=document.getElementById('mic-btn-label');
-          if(mI) mI.textContent='🎤'; if(mL) mL.textContent='질문';
+          if(mI) mI.textContent='🎤'; if(mL){ const _qt={ko:'질문',en:'Ask',ja:'質問',zh:'提问'}; mL.textContent=_qt[AppController?.STATE?.lang||'ko']||'질문'; }
           break;
         }
         // 소리박스 열기
@@ -2731,7 +2751,8 @@ const AppController = {
         // 마이크 버튼 → 활성 상태
         const mI2=document.getElementById('mic-btn-icon');
         const mL2=document.getElementById('mic-btn-label');
-        if(mI2) mI2.textContent='🔴'; if(mL2) mL2.textContent='마치기';
+        if(mI2) mI2.textContent='🔴';
+        if(mL2){ const doneT={ko:'마치기',en:'Done',ja:'終了',zh:'完成'}; mL2.textContent=doneT[this.STATE.lang]||'마치기'; }
         // 90초 안전장치
         clearTimeout(this._micAutoCloseTimer);
         this._micAutoCloseTimer=setTimeout(()=>{
@@ -2874,6 +2895,8 @@ const AppController = {
     CameraEngine.setSize('sm'); // 소형으로 시작
     document.getElementById('mic-btn-wrap').style.display = this.STATE.micEnabled ? 'block' : 'none';
     this._updateScenes(); this._updateTabs();
+    // 언어별 UI 텍스트 업데이트 (마이크 버튼, placeholder 등)
+    this._updateUITexts(this.STATE.lang);
     document.getElementById('character').classList.add('show');
     this._showStep();
     // 음성인식 엔진 준비만 — 자동 시작 안 함 (버튼으로만 인식)
@@ -2967,6 +2990,8 @@ const AppController = {
   },
 
   showModeSelect(){
+    // 소리박스 먼저 닫기
+    this._closeMicBox();
     // 모드선택 화면으로 돌아갈 때 ACTIVE 전용 UI 숨기기
     document.getElementById('pip').style.display='none';
     document.getElementById('phase-tabs').style.display='none';
@@ -3181,9 +3206,13 @@ const AppController = {
     _s('voice-cancel-text', t.cancel);
     _s('voice-clear-text', t.clear);
     _s('back-lang-label', t.backLang);
+    // textarea placeholder 언어별 변경
+    const vhEl=document.getElementById('voice-heard');
+    if(vhEl){ const ph={ko:'말씀하시거나 여기를 탭해서 직접 입력하세요',en:'Speak or tap here to type',ja:'話すかここをタップして入力',zh:'说话或点击此处输入'}; vhEl.placeholder=ph[l]||ph.ko; }
     // 마이크 버튼 레이블
     const mL=document.getElementById('mic-btn-label');
-    if(mL && mL.textContent!=='마치기' && mL.textContent!=='Done' && mL.textContent!=='終了' && mL.textContent!=='完成'){
+    const doneWords=['마치기','Done','終了','完成'];
+    if(mL && !doneWords.includes(mL.textContent)){
       mL.textContent=t.micBtn;
     }
     // 설정 패널 닫기 버튼
@@ -3225,9 +3254,9 @@ const AppController = {
   // 패널 전환 시 음성 즉시 중단 (탭 이동 중 설명 겹침 방지)
   togglePanel(name, isOpen){
     if(isOpen){
-      // 패널 열릴 때 QR팝업/듣고있어요 자동 닫기
+      // 패널 열릴 때 소리박스 자동 닫기
       document.getElementById('qr-popup')?.remove();
-      document.getElementById('voice-listening').style.display='none';
+      this._closeMicBox();
       // API 키 상태 표시 업데이트
       AIEngine._updateKeyStatus();
       window.speechSynthesis.cancel();
