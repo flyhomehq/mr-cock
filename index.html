@@ -339,6 +339,11 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       style="position:absolute;top:16px;left:16px;background:rgba(0,0,0,0.5);border:1.5px solid rgba(255,255,255,0.35);border-radius:20px;color:rgba(255,255,255,0.85);font-size:13px;font-weight:600;padding:7px 16px;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;gap:5px;backdrop-filter:blur(8px)">
       ← <span id="back-lang-label">언어</span>
     </button>
+    <!-- 우측 상단 설정 버튼 -->
+    <button id="mode-settings-btn" data-action="open-settings"
+      style="position:absolute;top:16px;right:16px;background:rgba(0,0,0,0.5);border:1.5px solid rgba(255,255,255,0.35);border-radius:20px;color:rgba(255,255,255,0.85);font-size:13px;font-weight:600;padding:7px 16px;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;gap:5px;backdrop-filter:blur(8px)">
+      ⚙ <span id="mode-settings-label">설정</span>
+    </button>
     <!-- 타이틀 -->
     <div class="mode-title">✈ CockpitOS</div>
     <div class="mode-sub" id="mode-sub-text">학습 모드를 선택하십시오.</div>
@@ -3341,6 +3346,7 @@ const AppController = {
     _s('voice-cancel-text', t.cancel);
     _s('voice-clear-text', t.clear);
     _s('back-lang-label', t.backLang);
+    _s('mode-settings-label', t.settings);
     // textarea placeholder 언어별 변경
     const vhEl=document.getElementById('voice-heard');
     if(vhEl){ const ph={ko:'말씀하시거나 여기를 탭해서 직접 입력하세요',en:'Speak or tap here to type',ja:'話すかここをタップして入力',zh:'说话或点击此处输入'}; vhEl.placeholder=ph[l]||ph.ko; }
