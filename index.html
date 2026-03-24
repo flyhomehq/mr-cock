@@ -1580,11 +1580,21 @@ const GestureEngine = {
   _trigger(event,data){ if(this._callbacks[event]) this._callbacks[event](data); },
 
   // 화면에 제스처 표시
-  _showGesture(msg){
+  _showGesture(msg, persist=false){
     const el=document.getElementById('gesture-indicator');
     if(!el) return;
+    clearTimeout(this._gestureTimer);
     el.textContent=msg; el.style.opacity='1';
-    setTimeout(()=>{ el.style.opacity='0'; }, 2500);
+    // persist=true 또는 PAUSED 상태면 다음 신호 올 때까지 유지
+    if(!persist && !AppController?.STATE?.paused){
+      this._gestureTimer=setTimeout(()=>{ el.style.opacity='0'; }, 2500);
+    }
+  },
+
+  _hideGesture(){
+    const el=document.getElementById('gesture-indicator');
+    if(el) el.style.opacity='0';
+    clearTimeout(this._gestureTimer);
   },
 
   // 제스처 인식 중지
@@ -3298,6 +3308,8 @@ const AppController = {
       clearTimeout(this._autoTimer);
       if(overlay) overlay.classList.remove('show');
       if(dialogBtn) dialogBtn.textContent='⏸';
+      // gesture-indicator 숨기기
+      GestureEngine._hideGesture();
       // 저장된 텍스트로 TTS + 자막 재시작
       if(this._pausedText){
         DialogEngine.show(this._pausedText);
