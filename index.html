@@ -459,6 +459,8 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
       placeholder="말씀하시거나 여기를 탭해서 직접 입력하세요"
       rows="3"
       style="width:100%;font-size:14px;color:#FFD700;line-height:1.5;min-height:52px;max-height:100px;overflow-y:auto;word-break:break-all;text-align:left;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 8px;margin-bottom:10px;resize:none;outline:none;font-family:inherit;caret-color:#FFD700;box-sizing:border-box"
+      onfocus="if(window.VoiceRecognitionEngine?._recog){VoiceRecognitionEngine._recog._dead=true;try{VoiceRecognitionEngine._recog.stop();}catch(e){}}"
+      onblur="const vi=document.getElementById('voice-listening');if(vi&&vi.style.display==='block'&&!VoiceEngine._isSpeaking){setTimeout(()=>{if(window.VoiceRecognitionEngine)VoiceRecognitionEngine.listenOnce();},300);}"
       oninput="if(window.VoiceRecognitionEngine?._recog) VoiceRecognitionEngine._recog._accumulated=this.value"
     ></textarea>
     <!-- 하단 버튼 -->
@@ -1617,9 +1619,9 @@ const VoiceRecognitionEngine = {
       const viOpen = vi && vi.style.display==='block';
 
       if(viOpen){
-        // 소리박스 열려있는 동안 — textarea에 업데이트
+        // textarea 모드: 키보드 편집 중이면 STT 업데이트 건너뜀
+        if(document.activeElement === vh) return;
         if(!isFinal){
-          // 중간결과: 누적텍스트 + 미리보기 (textarea는 plain text만)
           const prev = r._accumulated || '';
           if(vh) vh.value = (prev ? prev + ' ' : '') + said + '…';
         } else {
@@ -1630,7 +1632,7 @@ const VoiceRecognitionEngine = {
           }
         }
         IntelMonitor?.setLED('voice', isFinal ? false : true);
-        return; // 소리박스 모드에서는 _process 호출 안 함
+        return;
       }
 
       // 소리박스 닫혀있을 때 — 기존 자동처리 흐름
@@ -2702,7 +2704,7 @@ const AppController = {
       case 'voice-send':{
         const vh3=document.getElementById('voice-heard');
         const vi3=document.getElementById('voice-listening');
-        // textarea 직접 입력값 우선, 없으면 누적 텍스트
+        // textarea 직접입력값 우선, 없으면 누적텍스트
         const accum=(vh3?.value||vh3?.textContent||'').replace(/["""]/g,'').trim()
                   ||(VoiceRecognitionEngine._recog?._accumulated||'').trim();
         VoiceRecognitionEngine.stop();
@@ -2742,7 +2744,7 @@ const AppController = {
       // ── 지우기 ──
       case 'voice-clear':{
         const vh5=document.getElementById('voice-heard');
-        if(vh5){ vh5.value=''; vh5.textContent=''; vh5.focus(); }
+        if(vh5){ vh5.value=''; vh5.textContent=''; }
         if(VoiceRecognitionEngine._recog) VoiceRecognitionEngine._recog._accumulated='';
         // 마이크 계속 열린 상태 유지
         break;
