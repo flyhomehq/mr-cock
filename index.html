@@ -647,6 +647,20 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
        → v1.1에서 콘텐츠 추가 예정
        → 현재는 "준비중" 표시
   ════ -->
+  <!-- ════ 갤러그 게임 오버레이 ════ -->
+  <div id="galaga-panel" class="panel" style="background:#000">
+    <div style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <button data-action="close-galaga"
+        style="position:fixed;top:16px;right:16px;z-index:210;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:12px;color:#fff;font-size:14px;font-weight:700;padding:8px 18px;cursor:pointer;touch-action:manipulation">
+        ✕ 나가기
+      </button>
+      <canvas id="galaga-canvas" style="display:block;image-rendering:pixelated;max-width:100vw;max-height:100vh"></canvas>
+      <div id="galaga-msg" style="position:fixed;bottom:30px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font-size:12px;text-align:center">
+        터치: 좌우 이동 &nbsp;|&nbsp; 탭: 발사 &nbsp;|&nbsp; PC: ←→ 이동, Space 발사
+      </div>
+    </div>
+  </div>
+
   <div id="lounge-panel" class="panel">
     <div style="width:90%;max-width:460px;margin:auto;background:rgba(10,15,28,0.97);border:1px solid rgba(245,166,35,0.5);border-radius:22px;padding:28px 24px;position:relative;color:#fff">
       <button data-action="close-lounge" style="position:absolute;top:14px;right:18px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:22px;cursor:pointer">✕</button>
@@ -658,10 +672,10 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
           <div style="font-size:13px;font-weight:600">Flight Quiz</div>
           <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:3px">준비중</div>
         </div>
-        <div data-action="lounge-cargo" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:20px;border-radius:16px;text-align:center;cursor:pointer;touch-action:manipulation">
-          <div style="font-size:28px;margin-bottom:8px">📦</div>
-          <div style="font-size:13px;font-weight:600">Cargo Game</div>
-          <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:3px">준비중</div>
+        <div data-action="lounge-galaga" style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);padding:20px;border-radius:16px;text-align:center;cursor:pointer;touch-action:manipulation">
+          <div style="font-size:28px;margin-bottom:8px">🚀</div>
+          <div style="font-size:13px;font-weight:600">갤러그</div>
+          <div style="font-size:10px;color:rgba(245,166,35,0.6);margin-top:3px">추억의 게임 ▶</div>
         </div>
       </div>
       <!-- 공유 섹션 -->
@@ -2236,18 +2250,20 @@ const PitchEngine = {
   // 발표 슬라이드 — 수정 시 여기만 편집
   SLIDES:{
     ko:[
-      {char:'w', text:'안녕하세요! CockpitOS 가이드, 미스터 콕입니다.\n저희는 단순히 "보는 앱"이 아닙니다.\n모니터 밖으로 나온 AI의 눈입니다.'},
-      {char:'h', text:'카메라로 학습자의 손동작을 실시간 관찰하고\n즉각 교정하는 "옆에 앉은 교관"입니다.\n비행이라는 강력한 로망으로 매니아층을 선점합니다.'},
-      {char:'h', text:'전문 강사 없이 운영 가능한 항공 체험존 솔루션을\nB2G/B2B로 납품합니다.\n베테랑 조종사가 콘텐츠를 올리고 광고 수익을 나누는\n창작자 생태계를 구축합니다.'},
-      {char:'w', text:'저희는 앱을 파는 것이 아닙니다.\nAI가 인간의 실제 행동을 이해하고 가르치는\n미래 교육의 눈을 선점하는 것입니다.\n자, 이제 창업자의 시연을 통해 확인해 보세요!'},
+      {char:'w', text:'안녕하세요, 저는 AI 비행 교관 미스터 콕입니다.\n지금부터 비행 시뮬레이터 교육의\n새로운 방식을 보여드리겠습니다.'},
+      {char:'h', text:'비행학교에서 교관 없이 혼자 조종석에 앉으면 어떨까요?\n버튼이 200개입니다. 유튜브는 제가 조작했는지 모릅니다.\n저는 압니다.'},
+      {char:'h', text:'저는 한국어로 초보자에게 즉시 답합니다.\n경쟁사는 영어 전용, 고급자 전용입니다.\n저는 한국어로, 초보자를 위해 만들어졌습니다.'},
+      {char:'w', text:'비행 중 제주 상공이면 렌터카 광고가 뜹니다.\n부산 상공이면 해운대 호텔 광고가 뜹니다.\n위치 기반 광고 수익. 경쟁사에는 없는 구조입니다.'},
+      {char:'h', text:'지금 창업자의 시연을 보시겠습니다.\n번호를 누르거나 말로 물어보세요.\n저는 지금 바로 답합니다. 캡틴, 준비되셨나요?'},
     ],
     en:[
-      {char:'w', text:'Hello! I\'m Mr. Cock, your CockpitOS guide.\nWe are not just another app.\nWe are the eyes of AI, brought outside the monitor.'},
-      {char:'h', text:'Through Vision AI, we observe learners\' hand movements in real time\nand correct them instantly — like an instructor sitting right next to you.'},
-      {char:'h', text:'We deliver a staffless aviation experience zone solution\nto B2G/B2B clients — science museums and training centers.'},
-      {char:'w', text:'We are not selling an app.\nWe are pioneering the Future Eye of Education —\nan AI that understands and teaches human behavior.\nNow, let the founder show you the real thing!'},
+      {char:'w', text:'Hello, I am Mr. Cock, your AI flight instructor.\nLet me show you a new way\nto learn flight simulation.'},
+      {char:'h', text:'Imagine sitting alone in a cockpit without an instructor.\n200 buttons, no guidance.\nYouTube cannot tell if you did it. I can.'},
+      {char:'h', text:'I answer beginners in Korean instantly.\nCompetitors are English-only, expert-only.\nI was built for Korean beginners.'},
+      {char:'w', text:'Flying over Jeju? A rental car ad appears.\nOver Busan? A hotel ad appears.\nLocation-based ad revenue. No competitor has this.'},
+      {char:'h', text:'Now watch the founder demonstrate.\nTap a number or ask me anything.\nI answer immediately. Captain, are you ready?'},
     ],
-  },
+  }
 
   start(){
     this._step=0;
@@ -2317,6 +2333,227 @@ const PitchEngine = {
       if(btn) btn.textContent='⛶ 전체화면';
       CameraEngine._startCycle();
     }
+  },
+};
+
+
+/* ════════════════════════════════════
+   GalagaEngine — 추억의 갤러그 미니게임
+   라운지에서 비행 전 휴식용
+   ════════════════════════════════════ */
+const GalagaEngine = {
+  _raf: null, _ctx: null, _canvas: null,
+  _W: 360, _H: 600,
+  _player: null, _bullets: [], _enemies: [], _enemyBullets: [],
+  _score: 0, _lives: 3, _level: 1, _gameOver: false, _started: false,
+  _keys: {}, _touchX: null,
+
+  start(){
+    const panel = document.getElementById('galaga-panel');
+    if(panel) panel.classList.add('open');
+    this._canvas = document.getElementById('galaga-canvas');
+    this._canvas.width = this._W;
+    this._canvas.height = this._H;
+    this._canvas.style.width = Math.min(this._W, window.innerWidth) + 'px';
+    this._canvas.style.height = Math.min(this._H, window.innerHeight * 0.9) + 'px';
+    this._ctx = this._canvas.getContext('2d');
+    this._reset();
+    this._bindEvents();
+    this._loop();
+  },
+
+  stop(){
+    const panel = document.getElementById('galaga-panel');
+    if(panel) panel.classList.remove('open');
+    cancelAnimationFrame(this._raf);
+    this._unbindEvents();
+    this._started = false;
+  },
+
+  _reset(){
+    this._score = 0; this._lives = 3; this._level = 1; this._gameOver = false;
+    this._bullets = []; this._enemyBullets = [];
+    this._player = {x: this._W/2, y: this._H - 60, w: 28, h: 20, speed: 5, shootCool: 0};
+    this._spawnEnemies();
+    this._started = true;
+  },
+
+  _spawnEnemies(){
+    this._enemies = [];
+    const rows = 4, cols = 8;
+    for(let r=0; r<rows; r++){
+      for(let c=0; c<cols; c++){
+        this._enemies.push({
+          x: 30 + c * 38, y: 40 + r * 36,
+          w: 24, h: 18, alive: true,
+          type: r < 1 ? 2 : r < 2 ? 1 : 0,
+          dx: 0.8 + this._level * 0.15, dy: 0,
+          shootTimer: Math.random() * 200
+        });
+      }
+    }
+  },
+
+  _loop(){
+    this._raf = requestAnimationFrame(()=>this._loop());
+    this._update();
+    this._draw();
+  },
+
+  _update(){
+    if(this._gameOver || !this._started) return;
+    const p = this._player;
+
+    // 플레이어 이동
+    if(this._keys['ArrowLeft'] || this._keys['a']) p.x = Math.max(p.w/2, p.x - p.speed);
+    if(this._keys['ArrowRight'] || this._keys['d']) p.x = Math.min(this._W - p.w/2, p.x + p.speed);
+    // 터치 이동
+    if(this._touchX !== null) p.x += (this._touchX - p.x) * 0.15;
+    // 발사 쿨다운
+    if(p.shootCool > 0) p.shootCool--;
+
+    // 총알 이동
+    this._bullets = this._bullets.filter(b=>{ b.y -= 9; return b.y > 0; });
+    this._enemyBullets = this._enemyBullets.filter(b=>{ b.y += 4; return b.y < this._H; });
+
+    // 적 이동
+    let flipX = false;
+    this._enemies.forEach(e=>{
+      if(!e.alive) return;
+      e.x += e.dx;
+      if(e.x > this._W - 20 || e.x < 20) flipX = true;
+      // 적 발사
+      e.shootTimer--;
+      if(e.shootTimer <= 0){
+        this._enemyBullets.push({x: e.x, y: e.y + 10, w: 4, h: 10});
+        e.shootTimer = 80 + Math.random() * 120;
+      }
+    });
+    if(flipX) this._enemies.forEach(e=>{ if(e.alive){ e.dx *= -1; e.y += 12; } });
+
+    // 충돌: 내 총알 vs 적
+    this._bullets.forEach(b=>{
+      this._enemies.forEach(e=>{
+        if(!e.alive) return;
+        if(Math.abs(b.x - e.x) < (b.w/2 + e.w/2) && Math.abs(b.y - e.y) < (b.h/2 + e.h/2)){
+          e.alive = false; b.y = -99;
+          this._score += e.type === 2 ? 150 : e.type === 1 ? 80 : 40;
+        }
+      });
+    });
+
+    // 충돌: 적 총알 vs 플레이어
+    this._enemyBullets.forEach(b=>{
+      if(Math.abs(b.x - p.x) < 14 && Math.abs(b.y - p.y) < 12){
+        b.y = this._H + 99; this._lives--;
+        if(this._lives <= 0) this._gameOver = true;
+      }
+    });
+
+    // 스테이지 클리어
+    if(this._enemies.every(e=>!e.alive)){
+      this._level++; this._spawnEnemies();
+    }
+  },
+
+  _draw(){
+    const ctx = this._ctx;
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, this._W, this._H);
+
+    if(!this._started){ return; }
+
+    // 별 배경
+    ctx.fillStyle='rgba(255,255,255,0.3)';
+    for(let i=0;i<40;i++){ ctx.fillRect((i*97+this._score)%this._W,(i*53+this._score*0.5)%this._H,1,1); }
+
+    // 플레이어
+    const p = this._player;
+    ctx.fillStyle = '#00ff88';
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y - p.h/2);
+    ctx.lineTo(p.x - p.w/2, p.y + p.h/2);
+    ctx.lineTo(p.x + p.w/2, p.y + p.h/2);
+    ctx.closePath(); ctx.fill();
+
+    // 내 총알
+    ctx.fillStyle = '#FFD700';
+    this._bullets.forEach(b=>ctx.fillRect(b.x-2, b.y-5, 4, 10));
+
+    // 적 총알
+    ctx.fillStyle = '#ff4444';
+    this._enemyBullets.forEach(b=>ctx.fillRect(b.x-2, b.y, 4, 10));
+
+    // 적
+    this._enemies.forEach(e=>{
+      if(!e.alive) return;
+      ctx.fillStyle = e.type===2 ? '#ff00ff' : e.type===1 ? '#ff8800' : '#00ccff';
+      ctx.fillRect(e.x - e.w/2, e.y - e.h/2, e.w, e.h);
+      // 눈
+      ctx.fillStyle = '#000';
+      ctx.fillRect(e.x - 6, e.y - 4, 4, 4);
+      ctx.fillRect(e.x + 2, e.y - 4, 4, 4);
+    });
+
+    // HUD
+    ctx.fillStyle = '#FFD700'; ctx.font = 'bold 14px monospace';
+    ctx.fillText(`SCORE: ${this._score}`, 10, 20);
+    ctx.fillText(`LEVEL: ${this._level}`, this._W/2 - 30, 20);
+    ctx.fillText(`LIFE: ${'♥'.repeat(this._lives)}`, this._W - 80, 20);
+
+    // 게임오버
+    if(this._gameOver){
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, this._W, this._H);
+      ctx.fillStyle = '#ff4444'; ctx.font = 'bold 36px monospace';
+      ctx.textAlign = 'center'; ctx.fillText('GAME OVER', this._W/2, this._H/2 - 20);
+      ctx.fillStyle = '#FFD700'; ctx.font = 'bold 18px monospace';
+      ctx.fillText(`SCORE: ${this._score}`, this._W/2, this._H/2 + 20);
+      ctx.fillStyle = '#fff'; ctx.font = '14px monospace';
+      ctx.fillText('탭하면 다시 시작', this._W/2, this._H/2 + 55);
+      ctx.textAlign = 'left';
+    }
+  },
+
+  _bindEvents(){
+    this._onKey = e=>{ this._keys[e.key]=e.type==='keydown'; };
+    this._onSpace = e=>{ if(e.code==='Space'){ e.preventDefault(); this._shoot(); } };
+    this._onTouch = e=>{
+      e.preventDefault();
+      if(e.touches.length){
+        const rect=this._canvas.getBoundingClientRect();
+        const scaleX=this._W/rect.width;
+        this._touchX=(e.touches[0].clientX-rect.left)*scaleX;
+      }
+    };
+    this._onTouchEnd = e=>{
+      this._touchX=null;
+      if(this._gameOver){ this._reset(); return; }
+      this._shoot();
+    };
+    this._onClick = ()=>{ if(this._gameOver) this._reset(); else this._shoot(); };
+    window.addEventListener('keydown', this._onKey);
+    window.addEventListener('keyup', this._onKey);
+    window.addEventListener('keydown', this._onSpace);
+    this._canvas.addEventListener('touchmove', this._onTouch, {passive:false});
+    this._canvas.addEventListener('touchend', this._onTouchEnd);
+    this._canvas.addEventListener('click', this._onClick);
+  },
+
+  _unbindEvents(){
+    window.removeEventListener('keydown', this._onKey);
+    window.removeEventListener('keyup', this._onKey);
+    window.removeEventListener('keydown', this._onSpace);
+    if(this._canvas){
+      this._canvas.removeEventListener('touchmove', this._onTouch);
+      this._canvas.removeEventListener('touchend', this._onTouchEnd);
+      this._canvas.removeEventListener('click', this._onClick);
+    }
+  },
+
+  _shoot(){
+    const p=this._player;
+    if(p.shootCool > 0) return;
+    this._bullets.push({x:p.x, y:p.y-p.h/2, w:4, h:10});
+    p.shootCool = 15;
   },
 };
 
@@ -2861,6 +3098,8 @@ const AppController = {
       case 'close-lounge':      this.togglePanel('lounge', false); break;
       case 'lounge-quiz':       this.toast('✈️ Flight Quiz — 곧 오픈합니다!'); break;
       case 'lounge-cargo':      this.toast('📦 Cargo Game — 곧 오픈합니다!'); break;
+      case 'lounge-galaga':     this.togglePanel('lounge',false); GalagaEngine.start(); break;
+      case 'close-galaga':      GalagaEngine.stop(); break;
       // 공유
       case 'share-app':         this.shareApp(); break;
       case 'show-qr':           this.showQR(); break;      // 광고 데모 (심사 시연용)
