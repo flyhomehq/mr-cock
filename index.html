@@ -290,7 +290,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
   <!-- ════ 멈춤 전체화면 오버레이 ════ -->
   <div id="pause-overlay" data-action="toggle-pause">
     <div id="pause-main-text">✊ PAUSED</div>
-    <div id="pause-resume-hint" style="margin-top:18px;font-size:clamp(14px,3vw,20px);font-weight:700;color:#FFD700;background:rgba(245,166,35,0.15);border:1.5px solid rgba(245,166,35,0.5);border-radius:16px;padding:10px 28px;letter-spacing:1px">
+    <div id="pause-resume-hint" style="margin-top:18px;font-size:clamp(13px,2.5vw,18px);font-weight:700;color:#FFD700;background:rgba(245,166,35,0.15);border:1.5px solid rgba(245,166,35,0.5);border-radius:16px;padding:10px 28px;letter-spacing:1px;text-align:center">
       ✌️ 가위 또는 화면 터치 → 계속
     </div>
   </div>
@@ -1503,38 +1503,29 @@ const GestureEngine = {
         this.handleHandRaised();
         break;
       case 'Pointing_Up':
-        // 검지 들기 → 다음으로
-        this._showGesture('☝️ 다음으로');
-        setTimeout(()=>AppController.advance(), 500);
+        // 검지 — 비활성화 (나중에 활성화)
         break;
       case 'Closed_Fist':
-        // 주먹 → 멈춤/재개 토글 (PAUSED 오버레이가 안내하므로 제스처 표시 생략)
-        setTimeout(()=>AppController.togglePause(), 300);
+        // ✊ 주먹 → 멈춤만 (재개 안 됨)
+        if(!AppController.STATE.paused){
+          setTimeout(()=>AppController.togglePause(), 300);
+        }
         break;
       case 'Thumb_Up':
-        // 엄지 올리기 → 이해했어요
-        this._showGesture('👍 확인!');
-        setTimeout(()=>AppController.advance(), 800);
+        // 엄지 위 — 비활성화 (나중에 활성화)
         break;
       case 'Thumb_Down':
-        // 엄지 내리기 → 다시 설명
-        this._showGesture('👎 다시 설명');
-        setTimeout(()=>AppController.goBack(), 500);
+        // 엄지 아래 — 비활성화 (나중에 활성화)
         break;
       case 'Victory':
-        // 가위 → 멈춤이면 재개, 진행 중이면 다음
+        // ✌️ 가위 → 재개만 (멈춤 중일 때만)
         if(AppController.STATE.paused){
           this._showGesture('✌️ 계속!');
           setTimeout(()=>AppController.togglePause(), 300);
-        } else {
-          this._showGesture('✌️ 다음!');
-          setTimeout(()=>AppController.advance(), 500);
         }
         break;
       case 'ILoveYou':
-        // 손가락 3개(하트) → 처음으로
-        this._showGesture('🤟 처음부터');
-        setTimeout(()=>AppController.startMode(AppController.STATE.mode), 800);
+        // 하트 — 비활성화 (나중에 활성화)
         break;
     }
   },
@@ -1580,21 +1571,11 @@ const GestureEngine = {
   _trigger(event,data){ if(this._callbacks[event]) this._callbacks[event](data); },
 
   // 화면에 제스처 표시
-  _showGesture(msg, persist=false){
+  _showGesture(msg){
     const el=document.getElementById('gesture-indicator');
     if(!el) return;
-    clearTimeout(this._gestureTimer);
     el.textContent=msg; el.style.opacity='1';
-    // persist=true 또는 PAUSED 상태면 다음 신호 올 때까지 유지
-    if(!persist && !AppController?.STATE?.paused){
-      this._gestureTimer=setTimeout(()=>{ el.style.opacity='0'; }, 2500);
-    }
-  },
-
-  _hideGesture(){
-    const el=document.getElementById('gesture-indicator');
-    if(el) el.style.opacity='0';
-    clearTimeout(this._gestureTimer);
+    setTimeout(()=>{ el.style.opacity='0'; }, 2500);
   },
 
   // 제스처 인식 중지
@@ -3308,8 +3289,6 @@ const AppController = {
       clearTimeout(this._autoTimer);
       if(overlay) overlay.classList.remove('show');
       if(dialogBtn) dialogBtn.textContent='⏸';
-      // gesture-indicator 숨기기
-      GestureEngine._hideGesture();
       // 저장된 텍스트로 TTS + 자막 재시작
       if(this._pausedText){
         DialogEngine.show(this._pausedText);
