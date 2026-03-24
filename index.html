@@ -648,7 +648,7 @@ loadMediaPipe().catch(e=>console.warn('[MediaPipe] 로드 실패:', e.message));
        → 현재는 "준비중" 표시
   ════ -->
   <!-- ════ 갤러그 게임 오버레이 ════ -->
-  <div id="galaga-panel" class="panel" style="background:#000">
+  <div id="galaga-panel" style="display:none;position:fixed;inset:0;z-index:200;background:#000;flex-direction:column;align-items:center;justify-content:center">
     <div style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center">
       <button data-action="close-galaga"
         style="position:fixed;top:16px;right:16px;z-index:210;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:12px;color:#fff;font-size:14px;font-weight:700;padding:8px 18px;cursor:pointer;touch-action:manipulation">
@@ -2350,7 +2350,7 @@ const GalagaEngine = {
 
   start(){
     const panel = document.getElementById('galaga-panel');
-    if(panel) panel.classList.add('open');
+    if(panel) panel.style.display='flex';
     this._canvas = document.getElementById('galaga-canvas');
     this._canvas.width = this._W;
     this._canvas.height = this._H;
@@ -2364,7 +2364,7 @@ const GalagaEngine = {
 
   stop(){
     const panel = document.getElementById('galaga-panel');
-    if(panel) panel.classList.remove('open');
+    if(panel) panel.style.display='none';
     cancelAnimationFrame(this._raf);
     this._unbindEvents();
     this._started = false;
